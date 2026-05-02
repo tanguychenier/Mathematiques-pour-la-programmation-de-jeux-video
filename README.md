@@ -56,7 +56,7 @@
    - [Cinématique inverse](#cinématique-inverse)
 7. [Physique des jeux](#physique-des-jeux)
    - [Simulation physique](#simulation-physique)
-     - [Pas de simulation fixe ≠ pas de frame](#pas-de-simulation-fixe--pas-de-frame)
+     - [Le pas de simulation n'est pas le pas de rendu](#le-pas-de-simulation-nest-pas-le-pas-de-rendu)
    - [Détection de collision](#détection-de-collision)
    - [Résolution de collision](#résolution-de-collision)
 8. [Intelligence artificielle](#intelligence-artificielle)
@@ -1391,9 +1391,9 @@ où $\Delta t$ est le pas de temps. Euler explicite gagne en simplicité ce qu'i
 \end{aligned}
 ```
 
-> **L'arbitrage du game-dev**. Symplectique > précision absolue pour 99 % des jeux. Un canon orbital qui dérive de 0,1 % d'énergie par seconde se voit en 30 secondes ; une trajectoire d'obus qui s'écarte de 1 cm sur 100 m, personne ne le remarque. C'est pour ça que Box2D, Bullet, PhysX par défaut, Havok et tous les moteurs de cloth utilisent du semi-implicite ou du Verlet — pas du RK4.
+> **Pourquoi les moteurs de jeu privilégient le semi-implicite et le Verlet plutôt que RK4.** Dans un jeu, on simule presque toujours pendant des minutes ou des heures sans interruption, donc la stabilité énergétique sur la durée compte plus que la précision instantanée. Une dérive lente d'un canon en orbite finit par se voir au bout de quelques dizaines de secondes ; en revanche, une erreur de quelques centimètres sur la trajectoire d'un obus qui parcourt cent mètres reste totalement invisible. C'est pour cette raison que les moteurs de physique grand public (Box2D, Bullet, PhysX) choisissent par défaut un intégrateur symplectique, et que les moteurs de tissu reposent sur du Verlet : on préfère un comportement qui ne s'emballe jamais à un comportement très précis sur un pas mais instable sur la durée.
 
-#### Pas de simulation fixe ≠ pas de frame
+#### Le pas de simulation n'est pas le pas de rendu
 
 C'est *le* piège du game-dev débutant : faire l'intégration physique avec le `Δt` de la frame courante (variable selon la machine). Conséquences :
 
