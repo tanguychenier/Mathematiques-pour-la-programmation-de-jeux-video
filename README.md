@@ -94,8 +94,8 @@ Nous allons couvrir une variété de sujets allant des **bases des mathématique
 
 Vous apprendrez à appliquer ces concepts pour résoudre les problèmes liés à :
 
-- la **géométrie** et aux **transformations** (déplacer, faire tourner, redimensionner) ;
-- l'**éclairage** et au **rendu** (calculer la couleur d'un pixel) ;
+- à la **géométrie** et aux **transformations** (déplacer, faire tourner, redimensionner) ;
+- à l'**éclairage** et au **rendu** (calculer la couleur d'un pixel) ;
 - la **performance** (n'afficher que ce qui est visible) ;
 - la **physique du jeu** (faire bouger les objets, gérer les collisions).
 
@@ -132,7 +132,7 @@ A --> D((z))
 
 L'espace cartésien est défini par un système de coordonnées cartésiennes, qui utilise des **axes orthogonaux** (des droites perpendiculaires les unes aux autres) et des nombres réels pour définir la position de points dans l'espace.
 
-Fondamentales dans le domaine des jeux vidéo, en particulier pour les jeux en 3 dimensions, elles permettent de représenter et de manipuler les **positions**, les **mouvements** et les **orientations** des objets dans l'espace virtuel.
+Fondamentales dans le domaine des jeux vidéo, en particulier pour les jeux en 3 dimensions, les coordonnées cartésiennes permettent de représenter et de manipuler les **positions**, les **mouvements** et les **orientations** des objets dans l'espace virtuel.
 
 #### Conventions de repère : main droite vs main gauche, Y-up vs Z-up
 
@@ -186,25 +186,25 @@ La valeur représentée est : $(-1)^s \times 1{.}m \times 2^{e-127}$.
 
 Conséquences pratiques pour le game-dev :
 
-- **Précision relative**, pas absolue. À l'origine, la précision est d'environ $1.2 \times 10^{-7}$ ; à $x = 10\,000$, elle tombe à environ $7.6 \times 10^{-4}$ (~ 1 mm). À $x = 1\,000\,000$ (genre une carte open-world très large), la précision tombe à $6 \cdot 10^{-2}$ (~ 6 cm) : les objets s'animent avec des saccades visibles.
+- **Précision relative**, pas absolue. À l'origine, la précision est d'environ $1.2 \times 10^{-7}$ ; à $x = 10\,000$, l'écart minimum représentable (*ulp*) est d'environ $6 \times 10^{-4}$ (~0,6 mm). À $x = 1\,000\,000$ (carte open-world très large), cet écart dépasse $6 \times 10^{-2}$ (~6 cm) : les objets s'animent avec des saccades visibles.
 - **L'addition n'est pas associative** : `(a + b) + c ≠ a + (b + c)` en général. Si vous accumulez du `Δt` à chaque frame depuis l'origine, vous accumulez aussi de l'erreur — d'où l'usage du compteur de temps en `double`.
 - **`0.1 + 0.2 == 0.3` est faux** : la base 2 ne représente pas exactement les fractions de base 10.
 
 #### Le piège de la comparaison directe
 
 ```csharp
-// FAUX en général
+// FAUX en général (transform.position et Mathf sont des APIs Unity/C#)
 if (transform.position.y == targetHeight) { ... }
 
-// Correct : comparer à un epsilon
+// Correct : comparer à un epsilon (Mathf.Abs — Unity)
 if (Mathf.Abs(transform.position.y - targetHeight) < 1e-4f) { ... }
 
-// Encore mieux : epsilon relatif (utile pour des grandes valeurs)
+// Encore mieux : epsilon relatif, agnostique moteur (MathF — .NET standard)
 bool ApproxEqual(float a, float b, float relTol = 1e-5f, float absTol = 1e-7f)
  => MathF.Abs(a - b) <= MathF.Max(absTol, relTol * MathF.Max(MathF.Abs(a), MathF.Abs(b)));
 ```
 
-> **`Mathf.Approximately` (Unity) utilise un epsilon de l'ordre de $10^{-6}$** : adapté aux objets proches de l'origine, mais inutilisable pour comparer des positions à plusieurs kilomètres. Dans ce cas il vaut mieux écrire son propre comparateur, par exemple le `ApproxEqual` ci-dessus.
+> **`Mathf.Approximately` (en C#/Unity) utilise un epsilon de l'ordre de $10^{-6}$** : adapté aux objets proches de l'origine, mais inutilisable pour comparer des positions à plusieurs kilomètres. Dans ce cas il vaut mieux écrire son propre comparateur, par exemple le `ApproxEqual` ci-dessus.
 
 #### Catastrophic cancellation
 
@@ -265,8 +265,8 @@ où $x_n$ est le nombre observable. La **période** est la longueur du cycle $S_
 
 Une seed mal choisie biaise la séquence. Deux règles :
 
-1. **Ne jamais utiliser `time()` directement comme seed** : sur un cluster multijoueur, deux instances démarrées à la même seconde ont la même seed. Préférez une combinaison `time()`-XOR-`pid()`-XOR-`hash(machineId)`.
-2. **Toujours passer la seed à travers SplitMix64** avant de l'utiliser : SplitMix64 distribue uniformément les bits, ce qui évite les corrélations sur des seeds proches (`seed=1` et `seed=2` donneraient sinon des séquences similaires sur certains PRNG).
+1. **Éviter `time()` seul comme seed en production** : sur un cluster multijoueur, deux instances démarrées à la même seconde ont la même seed. Pour un prototype solo c'est acceptable ; pour une application multijoueur ou serveur, préférez une combinaison `time()`-XOR-`pid()`-XOR-`hash(machineId)`.
+2. **Passer la seed à travers SplitMix64** avant de l'utiliser : SplitMix64 distribue uniformément les bits, ce qui évite les corrélations sur des seeds proches (`seed=1` et `seed=2` donneraient sinon des séquences similaires sur certains PRNG).
 
 ```python
 def splitmix64(x: int) -> int:
@@ -504,6 +504,7 @@ L'interpolation linéaire entre deux valeurs $A$ et $B$ avec un paramètre $t \i
 - $t = 0{,}5$ donne le milieu entre $A$ et $B$.
 
 ```csharp
+// Vector3 disponible dans System.Numerics (.NET) et dans Unity
 float Lerp(float a, float b, float t) => a + (b - a) * t;
 Vector3 LerpVec(Vector3 a, Vector3 b, float t) => a + (b - a) * t;
 ```
@@ -892,13 +893,13 @@ par une matrice de projection appropriée.
 
 Il existe deux types de projection couramment utilisés : la **projection orthographique** et la **projection perspective**. La projection orthographique projette l'objet en parallèle sur le plan en 2D ; la projection perspective utilise une distance de vue pour simuler les effets de perspective dans l'affichage de l'objet.
 
-En 3D, la projection **orthographique** peut être représentée par :
+En 3D, la projection **orthographique** dans sa forme simplifiée (sans mise à l'échelle du volume de vue) peut être représentée par :
 
 ```math
 \begin{pmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 1 \end{pmatrix}
 ```
 
-où la troisième colonne est remplacée par des zéros pour indiquer que la projection se fait sur un plan en 2D.
+où la troisième ligne est mise à zéro pour indiquer que la projection se fait sur le plan $z = 0$ (en supprimant la profondeur). En pratique, la matrice orthographique complète prend en compte les paramètres du volume de vue (gauche, droite, bas, haut, near, far) pour normaliser les coordonnées dans le cube NDC.
 
 La projection **perspective** peut être représentée en 3D par une matrice 4×4 :
 
@@ -906,7 +907,7 @@ La projection **perspective** peut être représentée en 3D par une matrice 4×
 \begin{pmatrix} \dfrac{1}{\tan\left(\dfrac{\theta}{2}\right)} & 0 & 0 & 0 \\ 0 & \dfrac{h}{w\cdot\tan\left(\dfrac{\theta}{2}\right)} & 0 & 0 \\ 0 & 0 & \dfrac{-(f+n)}{f-n} & \dfrac{-2fn}{f-n} \\ 0 & 0 & -1 & 0 \end{pmatrix}
 ```
 
-où $\theta$ est l'angle de vue (**FOV**, *Field Of View* — l'angle d'ouverture de la caméra, exprimé en degrés ou radians : 60° pour un FPS classique, 90°-100° pour un jeu compétitif), $w$ et $h$ sont les largeur et hauteur de l'écran, $n$ et $f$ sont les distances du plan de coupe avant (*near*) et arrière (*far*) du **frustum** (le volume tronc-de-pyramide visible par la caméra, voir plus bas).
+où $\theta$ est l'angle de vue (**FOV**, *Field Of View* — l'angle d'ouverture vertical de la caméra, exprimé en degrés ou radians : ~60° vertical pour un FPS classique en 16:9, soit ~90° horizontal), $w$ et $h$ sont les largeur et hauteur de l'écran, $n$ et $f$ sont les distances du plan de coupe avant (*near*) et arrière (*far*) du **frustum** (le volume tronc-de-pyramide visible par la caméra, voir plus bas). Note : les jeux FPS compétitifs utilisent souvent 90°-110° de FOV **horizontal**.
 
 #### Perspective
 
@@ -918,13 +919,15 @@ La perspective est une transformation utilisée en informatique graphique pour d
 
 La **transformation de vue** est utilisée pour modifier la perspective de l'observateur sur un objet en 3D — autrement dit, exprimer le monde dans le repère de la caméra.
 
-Elle peut être représentée en 3D par une matrice de transformation homogène 4×4 :
+Elle peut être représentée en 3D par une matrice de transformation homogène 4×4, obtenue comme le produit $V = R^T \cdot T(-\mathbf{d})$ où $R$ est la matrice de rotation de la caméra et $\mathbf{d}$ sa position dans le monde :
 
 ```math
-\begin{pmatrix} R_{11} & R_{12} & R_{13} & -d_x \\ R_{21} & R_{22} & R_{23} & -d_y \\ R_{31} & R_{32} & R_{33} & -d_z \\ 0 & 0 & 0 & 1 \end{pmatrix}
+\begin{pmatrix} R_{11} & R_{12} & R_{13} & t_x \\ R_{21} & R_{22} & R_{23} & t_y \\ R_{31} & R_{32} & R_{33} & t_z \\ 0 & 0 & 0 & 1 \end{pmatrix}
+\quad \text{où} \quad
+\begin{pmatrix} t_x \\ t_y \\ t_z \end{pmatrix} = -R^T \begin{pmatrix} d_x \\ d_y \\ d_z \end{pmatrix}
 ```
 
-où $d_x$, $d_y$ et $d_z$ sont les composantes de la position de la caméra et $R$ est la matrice de rotation qui représente l'orientation de la caméra.
+$\mathbf{d} = (d_x, d_y, d_z)$ est la position de la caméra dans le repère monde et $R$ est la matrice de rotation représentant l'orientation de la caméra. La transposée $R^T$ (et non $R$ directement) apparaît parce qu'on passe du repère monde au repère caméra, ce qui revient à inverser la rotation — et pour une matrice orthogonale, l'inverse est la transposée.
 
 Cette matrice transforme un vecteur de position homogène
 
@@ -958,12 +961,12 @@ E -->|Viewport| F[Espace écran<br/>pixels]
 | --- | --- | --- |
 | **Local / Objet** | repère de l'objet | sommets tels qu'exportés du logiciel 3D |
 | **Monde** | repère global de la scène | position absolue de l'objet |
-| **Vue / Caméra** | caméra à l'origine, regardant $-Z$ | éclairage, calculs liés à la caméra |
+| **Vue / Caméra** | caméra à l'origine, regardant $-Z$ (OpenGL/Vulkan) ou $+Z$ (DirectX) | éclairage, calculs liés à la caméra |
 | **Clip** | espace de projection | culling avant projection |
-| **NDC** | cube $[-1, 1]^3$ | espace normalisé après division par $w$ |
+| **NDC** | $[-1, 1]^3$ (OpenGL/Vulkan) ou $[-1,1]^2 \times [0,1]$ en z (DirectX/Metal) | espace normalisé après division par $w$ |
 | **Écran** | pixels | affichage final |
 
-La transformation complète d'un sommet $\mathbf{v}_{\text{local}}$ s'écrit comme un produit de matrices, appliqué dans l'ordre $\text{modèle} \to \text{vue} \to \text{projection}$ — c'est la fameuse matrice **MVP** (*Model-View-Projection*, le produit $P \cdot V \cdot M$ qu'on uploade comme uniform à chaque shader pour positionner correctement chaque sommet) :
+La transformation complète d'un sommet $\mathbf{v}_{\text{local}}$ s'écrit comme un produit de matrices, appliqué dans l'ordre $\text{modèle} \to \text{vue} \to \text{projection}$ — c'est la fameuse matrice **MVP** (*Model-View-Projection*, le produit $P \cdot V \cdot M$ qu'on envoie comme uniform au shader à chaque draw call pour positionner correctement chaque sommet) :
 
 ```math
 \mathbf{v}_{\text{clip}} = P \cdot V \cdot M \cdot \mathbf{v}_{\text{local}}
@@ -979,7 +982,7 @@ DirectX/HLSL ainsi qu'historiquement Direct3D et XNA utilisent la convention **r
 \mathbf{v}_{\text{clip}} = \mathbf{v}_{\text{local}} \cdot M^{T} \cdot V^{T} \cdot P^{T}
 ```
 
-Concrètement, dans un shader HLSL on écrit `mul(v, mul(M, mul(V, P)))` ou plus simplement `mul(v, MVP)` quand `MVP = M * V * P` est précalculée côté CPU avec l'ordre row-major. Mélanger les deux conventions sans s'en rendre compte donne un résultat très reconnaissable : la scène apparaît tournée de 90° (ou plus) après upload sur le GPU, parce que les transformations sont appliquées dans le mauvais ordre. HLSL accepte le pragma `#pragma pack_matrix(row_major)` ou `column_major` pour fixer la convention de stockage indépendamment de la convention mathématique : il faut s'aligner sur ce que le moteur uploade.
+Concrètement, dans un shader HLSL on écrit `mul(v, mul(M, mul(V, P)))` ou plus simplement `mul(v, MVP)` quand `MVP = M * V * P` est précalculée côté CPU avec l'ordre row-major. Mélanger les deux conventions sans s'en rendre compte donne un résultat très reconnaissable : la scène apparaît tournée de 90° (ou plus) après transfert sur le GPU, parce que les transformations sont appliquées dans le mauvais ordre. HLSL accepte le pragma `#pragma pack_matrix(row_major)` ou `column_major` pour fixer la convention de stockage indépendamment de la convention mathématique : il faut s'aligner sur ce que le moteur envoie au GPU.
 
 > **Règle mnémotechnique**. *Column-major + pré-multiplication* (OpenGL) **et** *row-major + post-multiplication* (DirectX) sont mathématiquement **équivalents** : la matrice column-major $M$ et la matrice row-major $M^T$ stockent les **mêmes 16 floats dans le même ordre en mémoire**. La différence est purement conventionnelle (ce qu'on appelle "ligne" et ce qu'on appelle "colonne"). Le seul vrai piège : l'**ordre de multiplication** dans le code, qui s'inverse selon la convention.
 
@@ -1134,7 +1137,7 @@ et **dans l'autre sens** (linéaire vers sRGB, donc gamma sur écriture finale d
 C_\text{sRGB} = \begin{cases} 12{,}92\,C_\text{lin} & \text{si } C_\text{lin} \le 0{,}0031308 \\[4pt] 1{,}055\,C_\text{lin}^{1/2{,}4} - 0{,}055 & \text{sinon} \end{cases}
 ```
 
-L'exposant effectif global ($\approx 2{,}4$ avec offset) revient à un gamma moyen de $\approx 2{,}2$ — d'où l'approximation usuelle. Le matériel GPU (les samplers `*_SRGB` et les *render target* `RGBA8_SRGB`) implémente la version **exacte** en hardware, donc on ne paie aucun cycle pour la conversion correcte.
+L'exposant effectif global ($\approx 2{,}4$ avec offset) revient à un gamma moyen de $\approx 2{,}2$ — d'où l'approximation usuelle. Le matériel GPU (les samplers `*_SRGB` et les cibles de rendu ou *render target*, voir définition ci-dessous, `RGBA8_SRGB`) implémente la version **exacte** en hardware, donc on ne paie aucun cycle pour la conversion correcte.
 
 > **Vocabulaire express du pipeline d'image.**
 >
@@ -1222,8 +1225,8 @@ Les sources de lumière sont des entités qui émettent de la lumière dans une 
 Les modèles d'éclairage décrivent comment la lumière interagit avec les objets et les surfaces. Voici quelques-uns des modèles les plus couramment utilisés :
 
 1. **Modèle d'éclairage de Phong** : basé sur trois composantes — l'éclairage **ambiant**, l'éclairage **diffus** et l'éclairage **spéculaire**. L'éclairage ambiant est une constante qui simule la lumière indirecte réfléchie par l'environnement. L'éclairage diffus est proportionnel à l'angle entre la normale de la surface et la direction de la lumière. L'éclairage spéculaire dépend de l'angle entre la direction de la lumière réfléchie et la direction de la caméra.
-2. **Modèle d'éclairage de Lambert** : simplification du modèle de Phong, qui ne prend en compte que l'éclairage ambiant et l'éclairage diffus. Moins réaliste mais plus rapide à calculer — un choix approprié pour les jeux vidéo sur des systèmes à faible puissance de calcul.
-3. **Modèle d'éclairage de Blinn-Phong** : amélioration du modèle de Phong qui utilise une approximation de la direction de la lumière réfléchie pour calculer l'éclairage spéculaire. Plus réaliste que le modèle de Phong et souvent utilisé dans les jeux vidéo modernes.
+2. **Modèle d'éclairage de Lambert** : modèle diffus pur (antérieur à Phong), qui ne prend en compte que l'éclairage ambiant et l'éclairage diffus. Moins réaliste qu'un modèle avec composante spéculaire mais plus rapide à calculer — un choix approprié pour les jeux vidéo sur des systèmes à faible puissance de calcul.
+3. **Modèle d'éclairage de Blinn-Phong** : variante du modèle de Phong qui remplace le calcul de la direction de réflexion exacte par un *half-vector* (vecteur médian entre la lumière et la caméra) pour calculer l'éclairage spéculaire. Moins coûteux que Phong, avec un rendu spéculaire légèrement différent, et souvent préféré dans les jeux vidéo.
 
 ### Ombres
 
@@ -1248,7 +1251,7 @@ Elles peuvent être utilisées pour représenter la **couleur** de base d'un obj
 
 Les **coordonnées de texture**, également appelées **coordonnées UV**, déterminent la manière dont une texture est mappée sur un objet 3D.
 
-Pour appliquer une texture à un objet 3D, on attribue à chaque sommet de l'objet un ensemble de coordonnées UV, qui correspondent aux coordonnées $(u, v)$ dans l'image de texture. Les coordonnées UV varient généralement de $0$ à $1$, où $(0, 0)$ correspond au coin inférieur gauche de l'image de texture et $(1, 1)$ au coin supérieur droit.
+Pour appliquer une texture à un objet 3D, on attribue à chaque sommet de l'objet un ensemble de coordonnées UV, qui correspondent aux coordonnées $(u, v)$ dans l'image de texture. Les coordonnées UV varient généralement de $0$ à $1$. La convention de l'origine diffère selon l'API graphique : en OpenGL, $(0, 0)$ est le coin **inférieur gauche** ; en DirectX/Direct3D et dans la majorité des moteurs, $(0, 0)$ est le coin **supérieur gauche**. Cette différence explique souvent les textures qui apparaissent à l'envers verticalement lors d'un portage entre APIs.
 
 ### Mappage UV
 
@@ -1280,7 +1283,7 @@ Chaque os de l'armature est associé à une partie de l'objet 3D et déforme cet
 Une armature est un ensemble de **nœuds** (appelés *joints* ou *os*) reliés entre eux par des **liaisons rigides**. Les nœuds ont des positions 3D et des orientations, généralement représentées par des matrices de transformation 4×4. Pour déterminer la position et l'orientation d'un nœud, on utilise la relation suivante :
 
 ```math
-T_\text{parent} \times T_\text{local} = T_\text{global}
+T_\text{global} = T_\text{parent} \cdot T_\text{local}
 ```
 
 où $T_\text{parent}$ est la matrice de transformation globale du nœud parent, $T_\text{local}$ est la matrice de transformation locale du nœud actuel, et $T_\text{global}$ est la matrice de transformation globale du nœud actuel.
@@ -1311,7 +1314,7 @@ La cinématique inverse nécessite la résolution d'un **système d'équations n
 
 Soit $\boldsymbol{\theta} = (\theta_1, \dots, \theta_n)$ le vecteur des angles articulaires et $\mathbf{e}(\boldsymbol{\theta})$ la position de l'effecteur (fonction non-linéaire). On cherche $\boldsymbol{\theta}^\star$ tel que $\mathbf{e}(\boldsymbol{\theta}^\star)$ atteigne la cible $\mathbf{e}_\text{cible}$. La **Jacobienne** $J = \partial \mathbf{e} / \partial \boldsymbol{\theta}$ relie une petite variation des angles à une petite variation de l'effecteur : $\Delta \mathbf{e} \approx J\,\Delta \boldsymbol{\theta}$.
 
-> **Notation.** Le symbole $\partial$ (lu "d rond") désigne une **dérivée partielle** : $\partial f / \partial x$ signifie "comment $f$ varie quand on bouge **uniquement** $x$, en gardant les autres variables fixes". C'est la généralisation aux fonctions à plusieurs variables de la dérivée classique $\mathrm{d}f / \mathrm{d}x$. La **Jacobienne** d'une fonction vectorielle $\mathbf{e}(\boldsymbol{\theta})$ est la matrice qui regroupe **toutes** les dérivées partielles : $J_{ij} = \partial e_i / \partial \theta_j$. Pour une chaîne IK à 3 articulations qui produit une position 3D en sortie, $J$ est une matrice $3 \times 3$.
+> **Notation.** Le symbole $\partial$ (lu "d rond") désigne une **dérivée partielle** : $\partial f / \partial x$ signifie "comment $f$ varie quand on bouge **uniquement** $x$, en gardant les autres variables fixes". C'est la généralisation aux fonctions à plusieurs variables de la dérivée classique $\mathrm{d}f / \mathrm{d}x$. La **Jacobienne** d'une fonction vectorielle $\mathbf{e}(\boldsymbol{\theta})$ est la matrice qui regroupe **toutes** les dérivées partielles : $J_{ij} = \partial e_i / \partial \theta_j$. Pour une chaîne IK à 3 articulations planaires (un degré de liberté chacune) qui produit une position 3D en sortie, $J$ est une matrice $3 \times 3$ ; en général, $J$ est de taille $m \times n$ où $m$ est la dimension de l'espace de l'effecteur et $n$ le nombre total de degrés de liberté.
 
 La mise à jour itérative des angles s'écrit, à chaque pas, en fonction de l'erreur courante et d'une forme de l'inverse de la Jacobienne :
 
@@ -1329,22 +1332,22 @@ où $J^{+}$ est la **pseudo-inverse** de Moore-Penrose. Selon la manière dont o
   - *Avantages* : convergence rapide, solution minimisant la norme $\|\Delta\boldsymbol{\theta}\|$.
   - *Inconvénients* : instable près des **singularités** (coude tendu, par exemple) où $JJ^{T}$ devient singulière ou mal conditionnée.
 
-- **Damped Least Squares** (DLS, Levenberg-Marquardt) : $\Delta \boldsymbol{\theta} = J^{T}(JJ^{T} + \lambda^2 I)^{-1}\,(\mathbf{e}_\text{cible} - \mathbf{e})$.
-  - *Avantages* : le terme d'amortissement $\lambda$ régularise le système et supprime les instabilités aux singularités ; c'est l'ossature classique des solveurs IK qu'on retrouve aussi bien dans Maya que dans les middleware côté moteur de jeu.
+- **Damped Least Squares** (DLS — application du principe de régularisation de Levenberg-Marquardt à l'IK) : $\Delta \boldsymbol{\theta} = J^{T}(JJ^{T} + \lambda^2 I)^{-1}\,(\mathbf{e}_\text{cible} - \mathbf{e})$.
+  - *Avantages* : le terme d'amortissement $\lambda$ régularise le système et supprime les instabilités aux singularités ; c'est l'ossature classique des solveurs IK qu'on retrouve aussi bien dans Maya que dans les solveurs IK des moteurs de jeu et des outils d'animation.
   - *Inconvénients* : introduit une erreur résiduelle au voisinage des singularités (l'effecteur ne peut plus atteindre exactement la cible) ; le réglage de $\lambda$ est souvent empirique.
 
 #### CCD — Cyclic Coordinate Descent
 
-Itérativement, on parcourt la chaîne de l'effecteur vers la racine et, pour chaque articulation, on calcule la rotation pure qui aligne le segment « articulation vers effecteur » avec « articulation vers cible ». L'implémentation tient en quelques dizaines de lignes, le coût en flops est négligeable et il n'y a pas de singularité à gérer. En revanche, les poses obtenues sont parfois peu naturelles (l'épaule fait l'essentiel du travail avant le coude). Très répandu dans les jeux jusqu'au milieu des années 2010, et encore utilisé comme *fallback*.
+Itérativement, on parcourt la chaîne de l'effecteur vers la racine et, pour chaque articulation, on calcule la rotation pure qui aligne le segment « articulation vers effecteur » avec « articulation vers cible ». L'implémentation tient en quelques dizaines de lignes, le coût en flops est négligeable et il n'y a pas de singularité à gérer. En revanche, les poses obtenues sont parfois peu naturelles (l'épaule fait l'essentiel du travail avant le coude). Très répandu dans les jeux jusqu'au milieu des années 2010, et encore utilisé comme solution de repli (*fallback*).
 
 #### FABRIK — Forward And Backward Reaching Inverse Kinematics
 
-Aristidou & Lasenby, 2011. On traite la chaîne comme un ensemble de longueurs **rigides** plutôt que de tordre des angles :
+Introduit par Aristidou & Lasenby (2011), FABRIK traite la chaîne comme un ensemble de longueurs **rigides** plutôt que de tordre des angles :
 
 1. **Forward pass** : on déplace l'effecteur sur la cible, puis on fait remonter chaque articulation vers la racine en préservant les longueurs des os.
 2. **Backward pass** : on remet la racine à sa position initiale et on redescend la chaîne en préservant les longueurs.
 
-On itère jusqu'à convergence (typiquement 5-10 passes pour une chaîne de 7 os). Avantages : pas de Jacobienne à manipuler, pas de problème de singularité, un comportement visuellement très naturel, et la possibilité d'imposer des **contraintes d'angle** par simple projection à chaque passe. Largement adopté côté moteur de jeu — il est par exemple disponible directement dans le graphe d'animation d'Unreal sous le nom `Anim Graph FABRIK`.
+On itère jusqu'à convergence (typiquement 5-10 passes pour une chaîne de 7 os). Avantages : pas de Jacobienne à manipuler, pas de problème de singularité, un comportement visuellement très naturel, et la possibilité d'imposer des **contraintes d'angle** par simple projection à chaque passe. Largement adopté côté moteur de jeu — il est par exemple disponible directement dans l'Animation Blueprint d'Unreal Engine sous le nœud `FABRIK`.
 
 [ Retour en haut de page](#table-des-matières)
 
@@ -1377,21 +1380,21 @@ Position et vitesse sont ensuite intégrées dans le temps. La méthode la plus 
 ```
 
 ```math
-\mathbf{p}_{t+1} = \mathbf{p}_t + \mathbf{v}_{t+1}\,\Delta t
+\mathbf{p}_{t+1} = \mathbf{p}_t + \mathbf{v}_t\,\Delta t
 ```
 
-où $\Delta t$ est le pas de temps. Euler explicite gagne en simplicité ce qu'il perd en stabilité : sur de longues simulations, il introduit une dérive énergétique (les ressorts gagnent de l'énergie, les orbites s'écartent). On lui préfère :
+où $\Delta t$ est le pas de temps. La position est mise à jour avec la vitesse **avant** la mise à jour (c'est ce qui définit l'Euler explicite). Euler explicite gagne en simplicité ce qu'il perd en stabilité : sur de longues simulations, il introduit une dérive énergétique (les ressorts gagnent de l'énergie, les orbites s'écartent). On lui préfère :
 
-- **Euler semi-implicite** (*symplectic Euler*) : on met à jour la vitesse **avant** la position, ce qui en fait un *intégrateur symplectique*.
+- **Euler semi-implicite** (*symplectic Euler*) : on met à jour la vitesse **avant** la position — et on utilise la nouvelle vitesse $\mathbf{v}_{t+1}$ pour mettre à jour la position — ce qui en fait un *intégrateur symplectique*.
 
 ```math
 \mathbf{v}_{t+1} = \mathbf{v}_t + \mathbf{a}(\mathbf{p}_t)\,\Delta t, \qquad \mathbf{p}_{t+1} = \mathbf{p}_t + \mathbf{v}_{t+1}\,\Delta t
 ```
 
   - *Avantages* : l'erreur d'énergie reste bornée sur la durée (pas de dérive séculaire) ; simple à implémenter ; **l'intégrateur par défaut** dans la plupart des moteurs de jeu (Box2D, Bullet, PhysX).
-  - *Inconvénients* : légèrement moins précis qu'Euler explicite sur un seul pas ; pas adapté aux contraintes d'angle complexes.
+  - *Inconvénients* : même ordre de précision locale (ordre 1) qu'Euler explicite, donc pas plus précis sur un seul pas ; pas adapté aux contraintes d'angle complexes.
 
-- **Verlet de position** (Verlet, 1967) : on n'entrepose pas la vitesse explicitement, on la déduit des deux dernières positions.
+- **Verlet de position** (Verlet, 1967) : on ne stocke pas la vitesse explicitement, on la déduit des deux dernières positions.
 
 ```math
 \mathbf{p}_{t+1} = 2\,\mathbf{p}_t - \mathbf{p}_{t-1} + \mathbf{a}(\mathbf{p}_t)\,\Delta t^2
@@ -1459,7 +1462,7 @@ La **détection de collision** est le processus par lequel on détermine si deux
 - les tests de **boîtes englobantes** (**AABB** — *Axis-Aligned Bounding Box* : un parallélépipède rectangle dont les faces sont alignées sur les axes du monde, défini par seulement deux points min/max — c'est le test le plus rapide possible, "deux objets se chevauchent ssi leurs intervalles se chevauchent sur les trois axes") ;
 - les tests de **sphères englobantes** (un seul point + un rayon, encore plus rapide qu'AABB mais plus lâche) ;
 - les tests de **séparation d'axes** (**SAT** — *Separating Axis Theorem* : deux convexes ne se touchent pas s'il existe **un seul axe** sur lequel leurs projections ne se chevauchent pas — il suffit de tester un nombre fini d'axes "candidats" tirés des normales aux faces et arêtes) ;
-- l'algorithme **GJK** (*Gilbert-Johnson-Keerthi*, 1988 — résout la collision entre deux formes convexes en cherchant le point le plus proche de l'origine dans la **différence de Minkowski** $A \ominus B$ ; collision $\Leftrightarrow$ origine $\in A \ominus B$. Standard dans Bullet, Box2D, PhysX).
+- l'algorithme **GJK** (*Gilbert-Johnson-Keerthi*, 1988 — résout la collision entre deux formes convexes en cherchant le point le plus proche de l'origine dans la **différence de Minkowski** $A \ominus B = \{a - b \mid a \in A,\, b \in B\}$ ; collision $\Leftrightarrow$ origine $\in A \ominus B$. Standard dans Bullet, Box2D, PhysX).
 
 Chaque technique a ses avantages et ses inconvénients en termes de **précision** et de **performances**.
 
@@ -1480,32 +1483,32 @@ La résolution de collision peut être basée sur des principes de mécanique cl
 La résolution de collision implique généralement l'application d'une **force d'impulsion** aux objets en collision pour les séparer :
 
 ```math
-J = \frac{-(1 + e) \times (v_{A_t} - v_{B_t}) \cdot n}{\dfrac{1}{m_A} + \dfrac{1}{m_B}}
+J = \frac{-(1 + e)\,(\mathbf{v}_{A_t} - \mathbf{v}_{B_t}) \cdot \mathbf{n}}{\dfrac{1}{m_A} + \dfrac{1}{m_B}}
 ```
 
-où $J$ est l'impulsion, $e$ est le coefficient de **restitution** (élasticité, $0$ = parfaitement inélastique, $1$ = parfaitement élastique), $v_{A_t}$ et $v_{B_t}$ sont les vitesses des objets $A$ et $B$ avant la collision, $m_A$ et $m_B$ sont les masses des objets, et $n$ est le vecteur normal à la surface de contact.
+où $J$ est l'impulsion (scalaire), $e$ est le coefficient de **restitution** (élasticité, $0$ = parfaitement inélastique, $1$ = parfaitement élastique), $\mathbf{v}_{A_t}$ et $\mathbf{v}_{B_t}$ sont les vitesses vectorielles des objets $A$ et $B$ avant la collision, $m_A$ et $m_B$ sont les masses des objets, et $\mathbf{n}$ est le vecteur unitaire normal à la surface de contact.
 
 Ensuite, les vitesses des objets après la collision sont mises à jour en fonction de l'impulsion appliquée :
 
 ```math
-v_{A_{t+1}} = v_{A_t} + \frac{J}{m_A} \times n
+\mathbf{v}_{A_{t+1}} = \mathbf{v}_{A_t} + \frac{J}{m_A}\,\mathbf{n}
 ```
 
 ```math
-v_{B_{t+1}} = v_{B_t} - \frac{J}{m_B} \times n
+\mathbf{v}_{B_{t+1}} = \mathbf{v}_{B_t} - \frac{J}{m_B}\,\mathbf{n}
 ```
 
 La position des objets peut également être corrigée pour éviter les chevauchements en déplaçant les objets en fonction de la profondeur de pénétration $P$ et d'un facteur de correction :
 
 ```math
-p_{A_{t+1}} = p_{A_t} - \frac{m_B}{m_A + m_B} \times P \times n
+\mathbf{p}_{A_{t+1}} = \mathbf{p}_{A_t} - \frac{m_B}{m_A + m_B}\,P\,\mathbf{n}
 ```
 
 ```math
-p_{B_{t+1}} = p_{B_t} + \frac{m_A}{m_A + m_B} \times P \times n
+\mathbf{p}_{B_{t+1}} = \mathbf{p}_{B_t} + \frac{m_A}{m_A + m_B}\,P\,\mathbf{n}
 ```
 
-où $P$ est la profondeur de pénétration et $n$ est le vecteur normal à la surface de contact. Le facteur $m_B/(m_A + m_B)$ (resp. $m_A/(m_A + m_B)$) répartit la correction en proportion inverse des masses : un objet plus lourd se déplace moins.
+où $P$ est la profondeur de pénétration et $\mathbf{n}$ est le vecteur unitaire normal à la surface de contact. Le facteur $m_B/(m_A + m_B)$ (resp. $m_A/(m_A + m_B)$) répartit la correction en proportion inverse des masses : un objet plus lourd se déplace moins.
 
 ```mermaid
 graph LR
@@ -1548,7 +1551,7 @@ stateDiagram-v2
 
 #### Arbres de comportement (Behavior Trees)
 
-Inventés pour *Halo 2* (2004) puis popularisés par *Spore*, les **Behavior Trees** (BT) remplacent les transitions explicites par une **structure hiérarchique** que l'on parcourt à chaque tick. Trois types de nœuds :
+Popularisés dans le jeu vidéo avec *Halo 2* (2004) puis *Spore*, les **Behavior Trees** (BT) — issus à l'origine de la robotique — remplacent les transitions explicites par une **structure hiérarchique** que l'on parcourt à chaque tick. Trois types de nœuds :
 
 - **Sequence** ($\rightarrow$) : exécute les enfants en ordre, **réussit** si tous réussissent, échoue dès qu'un échoue. Équivalent du *AND* logique.
 - **Selector** ($?$) : exécute les enfants en ordre, **réussit** dès qu'un réussit, échoue si tous échouent. Équivalent du *OR*.
@@ -1567,11 +1570,11 @@ Selector (?)
  └── MoveTo(waypoint)
 ```
 
-L'avantage est la **composabilité** : on remplace `Attack` par `[Selector: ShootIfRanged, MeleeIfClose]` sans rien changer ailleurs. C'est ce qui explique sa popularité dans les moteurs grand public — Unreal le fournit directement via son `BehaviorTree` natif, Unity via le middleware `Behavior Designer`.
+L'avantage est la **composabilité** : on remplace `Attack` par `[Selector: ShootIfRanged, MeleeIfClose]` sans rien changer ailleurs. C'est ce qui explique sa popularité dans les moteurs grand public — Unreal le fournit directement via son `BehaviorTree` natif, Unity via l'asset tiers `Behavior Designer` (disponible sur l'Asset Store).
 
 #### Utility AI
 
-Plutôt que de hard-coder des transitions, l'**Utility AI** assigne une **fonction de score** à chaque action possible et choisit l'action de score maximal :
+Plutôt que de coder en dur des transitions, l'**Utility AI** assigne une **fonction de score** à chaque action possible et choisit l'action de score maximal :
 
 ```math
 \mathrm{score}(action) = \prod_{i} f_i(\text{contexte})
@@ -1585,7 +1588,7 @@ Pour les comportements vraiment intelligents (*F.E.A.R.* en 2005, encore référ
 
 ### Navigation
 
-La **navigation** des PNJ nécessite de **planifier un chemin** entre deux points en évitant les obstacles. L'algorithme de référence est **A\*** (« A étoile »), inventé en 1968 et toujours utilisé tel quel dans les moteurs modernes.
+La **navigation** des PNJ nécessite de **planifier un chemin** entre deux points en évitant les obstacles. L'algorithme de référence est **A\*** (« A étoile »), publié par Hart, Nilsson et Raphael en 1968, et toujours au cœur des moteurs modernes — souvent accompagné d'optimisations (HPA\*, JPS…) décrites plus bas.
 
 #### A\* — la fonction d'évaluation
 
@@ -1600,7 +1603,7 @@ où :
 - $g(n)$ est le **coût réel** déjà parcouru pour aller du départ à $n$ (somme des poids d'arêtes).
 - $h(n)$ est une **heuristique** : une *estimation* du coût restant entre $n$ et le but.
 
-À chaque itération, A\* sort de la file de priorité le nœud de plus petit $f$, l'expand, et enregistre ses voisins.
+À chaque itération, A\* sort de la file de priorité le nœud de plus petit $f$, l'*étend* (*expand*), et enregistre ses voisins.
 
 #### Pourquoi l'admissibilité de l'heuristique compte
 
@@ -1614,7 +1617,7 @@ où :
 f(n^\ast) = g(n^\ast) + h(n^\ast) \le g(n^\ast) + h^\ast(n^\ast) = C^\ast < g(G) = f(G)
 ```
 
-(la dernière égalité utilise $h(G) = 0$ pour un nœud-but). Or A\* extrait toujours de la file le nœud de **plus petit** $f$. Comme $n^\ast$ est dans la file ouverte avec $f(n^\ast) < f(G)$, A\* aurait dû expand $n^\ast$ avant de tester $G$ — contradiction. ∎
+(la dernière égalité utilise $h(G) = 0$ pour un nœud-but). Or A\* extrait toujours de la file le nœud de **plus petit** $f$. Comme $n^\ast$ est dans la file ouverte avec $f(n^\ast) < f(G)$, A\* aurait dû étendre (*expand*) $n^\ast$ avant de tester $G$ — contradiction. ∎
 
 > **Note technique**. Si $h$ est seulement admissible (pas consistante), la preuve ci-dessus marche pour A\* en *tree-search* (sans liste fermée) ou exige de ré-ouvrir un nœud quand on découvre un meilleur $g$. La consistance — plus forte que l'admissibilité — garantit qu'aucun nœud n'a besoin d'être ré-ouvert (Hart, Nilsson, Raphael, 1968). Toutes les heuristiques classiques sur grille (Manhattan, Chebyshev, Octile, Euclidienne) sont **consistantes** dès que les coûts d'arête respectent l'inégalité triangulaire — ce qui est quasi toujours le cas en pratique.
 
@@ -1637,7 +1640,7 @@ f(n^\ast) = g(n^\ast) + h(n^\ast) \le g(n^\ast) + h^\ast(n^\ast) = C^\ast < g(G)
 
 #### MCTS — Monte Carlo Tree Search
 
-Pour les jeux à grande arborescence (Go, certains RTS), A\* sur l'espace des états est intractable. **MCTS** (*Monte Carlo Tree Search*, 2006) explore l'arbre en quatre phases répétées :
+Pour les jeux à grande arborescence (Go, certains RTS), A\* sur l'espace des états est impraticable en temps réel. **MCTS** (*Monte Carlo Tree Search*, 2006) explore l'arbre en quatre phases répétées :
 
 - **Selection.** On descend dans l'arbre depuis la racine en choisissant à chaque pas l'enfant qui maximise la formule **UCB1** (*Upper Confidence Bound*) :
 
@@ -1659,8 +1662,8 @@ C'est cet algorithme, combiné à un réseau de neurones d'évaluation de positi
 
 Trois grands paradigmes en jeu vidéo :
 
-- **Apprentissage supervisé** : on entraîne le réseau à imiter une cible. Utilisé pour la reconnaissance de gestes via Kinect, la transcription speech-to-text dans le chat in-game.
-- **Apprentissage par renforcement (RL)** : l'agent apprend une **politique** $\pi(s) \to a$ qui maximise une **récompense cumulée** $\sum_t \gamma^t r_t$. Algorithmes connus : Q-learning, **DQN** (DeepMind sur Atari, 2015), **PPO** (OpenAI Five sur Dota 2, 2018), **AlphaZero** (DeepMind, échecs/Go/shogi, 2017). $\gamma \in [0, 1[$ est le **facteur d'actualisation** : il pénalise les récompenses lointaines pour les rendre comparables.
+- **Apprentissage supervisé** : on entraîne le réseau à imiter une cible. Utilisé pour la reconnaissance de gestes (ex. Kinect de Microsoft), la transcription de la parole en texte (*speech-to-text*) dans le chat en jeu.
+- **Apprentissage par renforcement (RL)** : l'agent apprend une **politique** $\pi(s) \to a$ qui maximise une **récompense cumulée** $\sum_t \gamma^t r_t$. Algorithmes connus : Q-learning, **DQN** (DeepMind sur Atari, 2015), **PPO** (*Proximal Policy Optimization*, Schulman et al., 2017 — utilisé notamment par OpenAI Five sur Dota 2 en 2018-2019), **AlphaZero** (DeepMind, échecs/Go/shogi, 2017). $\gamma \in [0, 1[$ est le **facteur d'actualisation** : il pénalise les récompenses lointaines pour les rendre comparables.
 - **Modèles génératifs** (LLM, diffusion) : génération de dialogues, de quêtes ou de textures à la volée. Encore expérimental côté production, prometteur pour le contenu procédural narratif (*AI Dungeon*, *Inworld AI* dans *Mecha BREAK*).
 
 > **Vocabulaire express du RL** (*Reinforcement Learning*).
@@ -1840,11 +1843,11 @@ Formellement :
 N_\text{blanc}(x, y) = \mathrm{hash}(x, y) \in [0, 1]
 ```
 
-> **Pourquoi c'est inutilisable seul.** Comme chaque pixel est indépendant, deux pixels voisins peuvent avoir des valeurs totalement différentes. Si on l'utilisait pour un terrain, le sol monterait à 100 m puis redescendrait à 0 d'un mètre à l'autre — injouable. Le bruit blanc sert d'**ingrédient de base** dans des constructions plus sophistiquées (bruit de valeur, bruit fractal) qui le **lissent**.
+> **Pourquoi c'est inutilisable seul.** Comme chaque pixel est indépendant, deux pixels voisins peuvent avoir des valeurs totalement différentes. Si on l'utilisait pour un terrain, le sol monterait à 100 m puis redescendrait à 0 d'un mètre à l'autre — injouable. Le bruit blanc sert de **source de valeurs pseudo-aléatoires** à partir de laquelle des constructions plus sophistiquées créent une continuité spatiale : le **bruit de valeur** en interpole les valeurs entre sommets de grille, le **bruit de Perlin** interpole des gradients, le **bruit fractal** en superpose plusieurs couches à différentes fréquences.
 
 #### Bruit de Perlin
 
-> **Définition.** Le **bruit de Perlin** est une fonction continue et lisse, inventée par **Ken Perlin** en 1983 pour générer les textures du film *Tron*. Elle ressemble à un terrain vu de dessus : des vallées et des collines qui se succèdent sans cassure. Perlin a reçu un Oscar technique en 1997 pour son invention. C'est aujourd'hui la base de la génération de terrain procédurale dans la majorité des jeux à monde ouvert (*Minecraft*, *No Man's Sky*, *Terraria*…), souvent dans sa variante Simplex décrite ci-dessous.
+> **Définition.** Le **bruit de Perlin** est une fonction continue et lisse, inventée par **Ken Perlin** pour générer les textures du film *Tron* (1982) et présentée publiquement au SIGGRAPH 1985. Elle ressemble à un terrain vu de dessus : des vallées et des collines qui se succèdent sans cassure. Perlin a reçu un Oscar technique en 1997 pour son invention. C'est aujourd'hui la base de la génération de terrain procédurale dans la majorité des jeux à monde ouvert (*Minecraft*, *No Man's Sky*, *Terraria*…), souvent dans sa variante Simplex décrite ci-dessous.
 
 L'idée intuitive : on découpe l'espace en une grille de cellules entières. À chaque sommet de la grille, on stocke un **vecteur gradient** pseudo-aléatoire (une direction). Quand on demande la valeur en un point $(x, y)$ quelconque, on combine les contributions des 4 sommets de la cellule qui contient le point, en les pondérant selon la position relative dans la cellule.
 
@@ -1873,7 +1876,7 @@ Chaque terme s'appelle une **octave** (terme musical : doubler la fréquence rev
 
 #### Applications
 
-- **Heightmap de terrain** : Minecraft, *No Man's Sky*, *Terraria* utilisent du bruit fractal pour générer la carte d'élévation du sol.
+- **Heightmap de terrain** : *Minecraft*, *No Man's Sky*, *Terraria* utilisent du bruit fractal pour générer la carte d'élévation du sol.
 - **Textures procédurales** : marbre, bois, nuages, eau — le motif "fibreux" d'un tronc vient d'une FBM filtrée.
 - **Distribution d'objets** : seuiller un bruit ($N(x, y) > 0{,}7$ → "pose un arbre ici") donne des forêts naturelles, sans agglomérats.
 - **Donjons et niveaux** : on utilise plutôt des algorithmes spécialisés.
@@ -1883,6 +1886,8 @@ Chaque terme s'appelle une **octave** (terme musical : doubler la fréquence rev
 - **BSP** (*Binary Space Partitioning*) : on découpe une zone en deux sous-zones, récursivement, jusqu'à obtenir des pièces. Utilisé par *Rogue* (1980) et la quasi-totalité des roguelikes.
 - **Wave Function Collapse** (Maxim Gumin, 2016) : algorithme inspiré de la physique quantique où chaque case "choisit" un motif compatible avec ses voisines. Donne des résultats étonnamment cohérents à partir d'un simple échantillon.
 - **Marche aléatoire** (*random walk*) : un agent virtuel se déplace au hasard et creuse les cases qu'il visite. Donne des cavernes organiques.
+
+Exemple d'implémentation d'une FBM de terrain en C#/Unity (utilise `Mathf.PerlinNoise`, l'implémentation du bruit de Perlin fournie par le moteur Unity) :
 
 ```csharp
 float Terrain(float x, float z)
@@ -1981,6 +1986,8 @@ F_\text{Schlick}(\boldsymbol{\omega}_o, \mathbf{h}) = F_0 + (1 - F_0)\,(1 - \mat
 G_\text{Smith}(\boldsymbol{\omega}_i, \boldsymbol{\omega}_o) = G_1(\boldsymbol{\omega}_i)\,G_1(\boldsymbol{\omega}_o), \qquad G_1(\boldsymbol{\omega}) = \frac{\mathbf{n}\cdot\boldsymbol{\omega}}{(\mathbf{n}\cdot\boldsymbol{\omega})(1 - k) + k}, \quad k = \frac{(\text{roughness} + 1)^2}{8}
 ```
 
+> **Note.** La formule de $k$ ci-dessus (Karis, Unreal 4) est l'approximation pour les **lumières directes**. Pour l'éclairage à base d'image (*IBL*, *Image-Based Lighting*), on utilise $k = \text{roughness}^2 / 2$ afin d'éviter un biais sur les surfaces lisses.
+
 avec :
 
 - **D — distribution des normales** (GGX/Trowbridge-Reitz, le standard depuis ~2014) : densité statistique des microfacettes alignées avec $\mathbf{h}$. La queue lourde de GGX (cf. ci-dessous) reproduit fidèlement les *highlights* étendues d'un métal brossé.
@@ -2061,20 +2068,20 @@ Trois choix usuels de PDF, chacun adapté à un terme :
 L'**aliasing** (en français : *crénelage*) apparaît dès qu'on échantillonne un signal continu (un triangle, une texture) à une fréquence inférieure à sa **fréquence de Nyquist** : $f_\text{sample} \ge 2\,f_\text{signal}$. Un triangle avec une arête fine ou une texture haute fréquence produit alors des marches d'escalier, du *moiré*, du *crawling* en mouvement. Quatre familles de techniques :
 
 - **SSAA** (*Super-Sampling Anti-Aliasing*) — la force brute. On rend la scène à $k\times$ la résolution puis on *downsample* par moyenne. Coût mémoire et calcul $\times k^2$. Référence absolue en qualité, jamais utilisé en jeu temps réel sauf en mode "screenshot".
-- **MSAA** (*Multi-Sample AA*) — version optimisée. On évalue le **fragment shader une seule fois par pixel** mais on stocke $k$ échantillons de **profondeur** et de **couverture** (typiquement 2× ou 4×). Très efficace pour les arêtes de polygones, mais sans effet sur les textures ni sur les *highlights* spéculaires fins ou les contours d'*alpha-test*. S'intègre aussi mal au *deferred shading* moderne, où il faudrait stocker $k$ échantillons de chaque attribut géométrique, ce qui devient prohibitif en mémoire.
+- **MSAA** (*Multi-Sample AA*) — version optimisée. On évalue le **fragment shader une seule fois par pixel** mais on stocke $k$ échantillons de **profondeur** et de **couverture** (typiquement 2× ou 4×). Très efficace pour les arêtes de polygones, mais sans effet sur les textures ni sur les *highlights* spéculaires fins ou les contours d'*alpha-test*. S'intègre difficilement au *deferred shading* moderne (non impossible, mais complexe et coûteux) : il faudrait stocker $k$ échantillons de chaque attribut géométrique dans le G-buffer, ce qui devient prohibitif en mémoire.
 
 ```math
 C_\text{pixel} = \frac{1}{k} \sum_{j=1}^{k} \mathbb{1}[\text{sample}_j \text{ couvert}] \cdot C_\text{shader}
 ```
 
-- **FXAA** (*Fast Approximate AA*, Lottes/NVIDIA, 2009) — *post-process* sur l'image finale. Détecte les contours par opérateur de **luma gradient** puis flou directionnel le long de l'arête. Très bon marché ($\sim 0{,}5$ ms en 1080p), résultat un peu flou, **gère tous les types d'aliasing** (textures incluses).
+- **FXAA** (*Fast Approximate AA*, Lottes/NVIDIA, publié vers 2011) — *post-process* sur l'image finale. Détecte les contours par opérateur de **luma gradient** puis flou directionnel le long de l'arête. Très bon marché ($\sim 0{,}5$ ms en 1080p), résultat un peu flou, **gère tous les types d'aliasing** (textures incluses).
 - **TAA** (*Temporal AA*) — le standard actuel. Combine l'image courante avec les images précédentes **reprojetées** via les *motion vectors*, en accumulant un sous-échantillon différent à chaque frame. Mathématiquement, c'est exactement la formule de reprojection temporelle vue dans la section DLSS :
 
 ```math
 C_t(\mathbf{p}) = \alpha\,C_t^\text{rendu}(\mathbf{p}) + (1 - \alpha)\,C_{t-1}(\mathbf{p} + \mathbf{v}_\text{motion})
 ```
 
-Avec $\alpha \approx 0{,}1$, après une dizaine de frames un pixel statique a accumulé une dizaine de sous-échantillons différents : on obtient à peu près la qualité d'un SSAA 10× pour le coût d'un seul rendu par frame. Le défaut classique du TAA est le *ghosting* : sur un objet qui se découvre, une couleur fantôme issue des frames précédentes reste collée derrière lui. Le *neighborhood clamping* (Karis, 2014) atténue cet effet en bornant la couleur historique aux valeurs minimales et maximales rencontrées dans le voisinage spatial du pixel à la frame courante : si la couleur historique sort de cette enveloppe (donc si la frame courante a vraiment changé), elle est clampée et le fantôme disparaît. **DLAA** (*Deep-Learning Anti-Aliasing*, NVIDIA — TAA dont la combinaison spatio-temporelle est gérée par un réseau de neurones) et **TSR** (*Temporal Super Resolution* d'Unreal Engine 5 — TAA qui fait également de l'*upscaling*) sont des évolutions modernes de TAA.
+Avec $\alpha \approx 0{,}1$, après une dizaine de frames un pixel statique a accumulé une dizaine de sous-échantillons différents : on obtient à peu près la qualité d'un SSAA 10× pour le coût d'un seul rendu par frame. Le défaut classique du TAA est le *ghosting* : sur un objet qui se découvre, une couleur fantôme issue des frames précédentes reste collée derrière lui. Le *neighborhood clamping* (Karis, 2014) atténue cet effet en bornant la couleur historique aux valeurs minimales et maximales rencontrées dans le voisinage spatial du pixel à la frame courante : si la couleur historique sort de cette enveloppe (donc si la frame courante a vraiment changé), elle est clampée et le fantôme disparaît. **DLAA** (*Deep-Learning Anti-Aliasing*, NVIDIA — TAA opérant à **résolution native** dont la combinaison spatio-temporelle est gérée par un réseau de neurones, sans upscaling) et **TSR** (*Temporal Super Resolution* d'Unreal Engine 5 — TAA qui fait également de l'*upscaling*) sont des évolutions modernes de TAA.
 
 #### Tessellation et displacement mapping
 
@@ -2147,7 +2154,7 @@ Tous les rebonds **autres que la première intersection** forment l'**illuminati
 
 Le rendu d'image en 4K coûte 4× le rendu 1080p. La parade : rendre à résolution interne plus basse (souvent 1440p ou 1080p) puis **reconstruire** la 4K en exploitant les **frames précédentes**. C'est le rôle des techniques d'upscaling :
 
-- **DLSS** (NVIDIA, 2018) : **réseau convolutionnel** (un réseau de neurones spécialisé dans les images, qui apprend à reconnaître les motifs locaux comme les contours et les textures) entraîné *offline* sur des images 16K de référence.
+- **DLSS** (NVIDIA, 2018) : réseau de neurones entraîné *offline* sur des images haute résolution de référence. DLSS 1 utilisait un réseau convolutionnel (CNN, spécialisé dans la reconnaissance de motifs locaux) ; DLSS 2+ s'appuie sur une architecture plus sophistiquée combinant reprojection temporelle et débruitage neuronal.
 - **FSR 2/3** (AMD, 2022) : algorithmique pur (heuristiques + reprojection + accumulation), tourne sur tout GPU.
 - **XeSS** (Intel, 2022) : approche neurale similaire à DLSS, plus portable.
 - **Frame Generation** (DLSS 3, FSR 3) : interpole / extrapole une frame intermédiaire à partir de deux frames rendues + des vecteurs de mouvement, pour doubler le framerate perçu.
@@ -2373,15 +2380,16 @@ avec $\alpha + \beta + \gamma = 1$ et $0 \leq \alpha, \beta, \gamma \leq 1$.
 Le fragment shader doit également prendre en compte l'éclairage de la scène pour déterminer la couleur finale du fragment. Soit $L$ la direction de la source de lumière, $N$ la normale au fragment et $V$ la direction de la caméra. La couleur finale $C_f$ est déterminée en utilisant l'**équation de Phong**, qui est une combinaison de la composante ambiante, diffuse et spéculaire :
 
 ```math
-C_f = k_a I_a + k_d (N \cdot L) I_d + k_s (R \cdot V)^n I_s
+C_f = k_a I_a + k_d \max(N \cdot L,\, 0)\, I_d + k_s \max(R \cdot V,\, 0)^n I_s
 ```
 
 où :
 
 - $k_a$, $k_d$, $k_s$ sont les coefficients d'éclairage ambiant, diffus et spéculaire ;
 - $I_a$, $I_d$, $I_s$ sont les intensités de lumière ambiante, diffuse et spéculaire ;
-- $R$ est la direction de réflexion de la lumière ;
-- $n$ est l'**exposant de brillance** (*shininess*).
+- $R$ est la direction de réflexion de la lumière (symétrique de $L$ par rapport à $N$) ;
+- $n$ est l'**exposant de brillance** (*shininess*) ;
+- le $\max(\cdot,\, 0)$ clamp évite une contribution négative de la lumière quand le point est dans l'ombre (lumière derrière la surface).
 
 ##### 3. Application des textures
 
@@ -2408,7 +2416,7 @@ Cette couleur finale $C_{\text{final}}$ est ensuite utilisée pour déterminer l
 Les fragment shaders peuvent également gérer la **transparence** des objets. Pour cela, ils utilisent une valeur **alpha** pour chaque fragment, qui détermine l'opacité de ce fragment. La couleur finale $C_f$ du fragment est alors combinée avec la couleur du fond $C_b$ en utilisant la valeur alpha $a$ pour obtenir la couleur du pixel à afficher :
 
 ```math
-C_{\text{pixel}} = C_f \odot a + C_b \odot (1 - a)
+C_{\text{pixel}} = a\,C_f + (1 - a)\,C_b
 ```
 
 ##### 6. Effets spéciaux
@@ -2424,10 +2432,12 @@ La couleur finale $C_f$ peut être calculée en utilisant une **somme pondérée
 > Une somme pondérée est une somme dans laquelle chaque terme est multiplié par un poids spécifique. Les couleurs sont représentées par des valeurs numériques, qui peuvent être considérées comme des « substances » numériques que l'on pondère.
 
 ```math
-C_f(x, y) = \frac{1}{2\pi\sigma^2} \sum_{i=-k}^{k} \sum_{j=-k}^{k} w(i, j) \cdot C(x+i, y+j)
+C_f(x, y) = \sum_{i=-k}^{k} \sum_{j=-k}^{k} G(i, j;\,\sigma) \cdot C(x+i, y+j)
+\qquad \text{où} \qquad
+G(i, j;\,\sigma) = \frac{1}{2\pi\sigma^2}\,e^{-\frac{i^2+j^2}{2\sigma^2}}
 ```
 
-où $\sigma$ est l'écart-type de la distribution gaussienne, $k$ est la taille du filtre et $w(i, j)$ est la pondération de chaque fragment voisin $(i, j)$.
+où $\sigma$ est l'écart-type de la distribution gaussienne, $k$ est la demi-taille du filtre et $G(i, j;\sigma)$ est le noyau gaussien 2D centré en $(0,0)$. En pratique on précalcule et normalise ces poids pour que leur somme vaille exactement 1 sur la fenêtre finie $[-k, k]^2$.
 
 ##### Exemple complet — un fragment shader Phong en GLSL
 
@@ -2478,7 +2488,7 @@ void main() {
 
 Trois choses à noter pour quiconque vient du *fixed-function pipeline* (OpenGL 1.x à 2.1) ou de DirectX 9 :
 
-1. Tout passe par des **matrices et uniforms explicites** côté CPU. Plus de `glLoadMatrix`, plus de `glLight` — c'était le règne du couple `glBegin`/`glEnd` qu'on a définitivement abandonné avec OpenGL 3.0+ Core Profile en 2008.
+1. Tout passe par des **matrices et uniforms explicites** côté CPU. Plus de `glLoadMatrix`, plus de `glLight`, plus du couple `glBegin`/`glEnd` — ces appels de l'ancien *fixed-function pipeline* ont été définitivement supprimés avec OpenGL 3.0+ Core Profile en 2008.
 2. La **pipeline programmable** est obligatoire : aucun rendu n'arrive à l'écran sans au moins un vertex shader **et** un fragment shader compilés et liés en *program object*. Les *render states* (alpha test, fog, lighting model) qui étaient des appels d'API en DX9 sont aujourd'hui des `if` ou des branches statiques dans le shader.
 3. Les **conversions sRGB sont implicites** quand on déclare correctement les formats des textures et du framebuffer. Tout shader qui contient un `pow(color, 2.2)` à la lecture ou à l'écriture est presque toujours un signe de format mal déclaré côté CPU.
 
