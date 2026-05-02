@@ -138,7 +138,7 @@ Fondamentales dans le domaine des jeux vidéo, en particulier pour les jeux en 3
 
 Trois choses qu'on néglige souvent à ses dépens :
 
-1. **L'orientation du repère** : *main droite* (right-handed, RH) ou *main gauche* (left-handed, LH). Pliez votre main droite : pouce $= x$, index $= y$, majeur $= z$. Pour un repère gauche, faites pareil avec votre main gauche — l'axe $z$ pointe dans l'autre sens.
+1. **L'orientation du repère** : *main droite* (right-handed, RH) ou *main gauche* (left-handed, LH). Étendez les doigts de votre main droite : pouce $= x$, index $= y$, majeur $= z$. Pour un repère gauche, répétez le geste avec la main gauche — l'axe $z$ pointe alors dans la direction opposée.
 2. **L'axe vertical** : *Y-up* (l'axe $y$ pointe vers le haut) ou *Z-up* (l'axe $z$ pointe vers le haut).
 3. **Le sens de rotation positif** : antihoraire (mathématiques classiques) ou horaire selon la convention.
 
@@ -227,7 +227,7 @@ Au-delà de quelques kilomètres en `float`, la solution canonique est de **rece
 Un jeu vidéo a besoin d'aléa **partout** — placement d'arbres dans une forêt, dégâts critiques, mélange du paquet de cartes, génération de niveau infini, bruit pour les textures, comportement d'IA. Mais cet "aléa" doit souvent être **reproductible** :
 
 - **Replay** : rejouer une partie enregistrée doit reproduire les mêmes événements.
-- **Multijoueur lockstep** : *Age of Empires*, *StarCraft*, *Factorio* synchronisent les joueurs en n'envoyant que les inputs ; tout le reste (collisions, IA, RNG) doit donner le même résultat sur chaque machine. (*Lockstep* signifie « pas verrouillé » : tous les clients avancent simulation et inputs au même rythme et sont obligés de rester bit-pour-bit identiques. Détails dans le chapitre Réseau.)
+- **Multijoueur lockstep** : *Age of Empires*, *StarCraft*, *Factorio* synchronisent les joueurs en n'envoyant que les inputs ; tout le reste (collisions, IA, RNG) doit donner le même résultat sur chaque machine. (*Lockstep* signifie littéralement « pas cadencé » — tous les clients avancent simulation et inputs au même rythme et sont contraints de rester bit-pour-bit identiques. Détails dans le chapitre Réseau.)
 - **Génération procédurale** : *Minecraft*, *Terraria*, *No Man's Sky* doivent recréer le même monde à partir d'une **seed** (graine) donnée.
 
 D'où l'usage de **PRNG** (pseudo-random number generators) : des générateurs déterministes qui, à partir d'un état initial, produisent une séquence "qui ressemble à de l'aléatoire".
@@ -373,7 +373,7 @@ Les vecteurs sont des entités mathématiques représentant à la fois une **mag
 
 ![image](https://user-images.githubusercontent.com/22911157/233814039-82e7aa63-d3dc-498f-ab2c-e19d3385eadf.png)
 
-Son format d'écriture usuel s'exprime par :
+Le format d'écriture usuel d'un vecteur colonne s'exprime par :
 
 ```math
 V =
@@ -593,7 +593,7 @@ où $P_0, P_1$ sont les points et $T_0, T_1$ les vecteurs tangents. Hermite et B
 
 ##### Catmull-Rom — la spline d'animation par excellence
 
-La **Catmull-Rom spline** est un cas particulier de Hermite où les tangentes sont **calculées automatiquement** à partir des voisins :
+La **Catmull-Rom spline** est une variante de Hermite où les tangentes sont **calculées automatiquement** à partir des points de contrôle voisins :
 
 ```math
 T_i = \frac{P_{i+1} - P_{i-1}}{2}
@@ -607,7 +607,7 @@ C'est une des splines les plus utilisées pour les trajectoires de caméra, les 
 
 ##### B-splines et NURBS — splines à degré arbitraire
 
-Quand on a beaucoup de points de contrôle, un Bézier unique de degré élevé devient instable et perd le contrôle local (bouger un point déforme **toute** la courbe). Les **B-splines** (*Basis splines*) résolvent ces deux problèmes en remplaçant les polynômes de Bernstein globaux par des **fonctions de base à support local** $N_{i,k}(t)$, définies par récurrence sur une suite de **nœuds** $\{t_0, t_1, \dots\}$ (relation de Cox-de Boor). Une B-spline de degré $k$ s'écrit :
+Quand on a beaucoup de points de contrôle, un Bézier unique de degré élevé devient numériquement sensible aux perturbations des points de contrôle et perd le contrôle local (bouger un point déforme **toute** la courbe). Les **B-splines** (*Basis splines*) résolvent ces deux problèmes en remplaçant les polynômes de Bernstein globaux par des **fonctions de base à support local** $N_{i,k}(t)$, définies par récurrence sur une suite de **nœuds** $\{t_0, t_1, \dots\}$ (relation de Cox-de Boor). Une B-spline de degré $k$ s'écrit :
 
 ```math
 S(t) = \sum_{i=0}^{n} N_{i,k}(t)\,P_i
@@ -623,7 +623,7 @@ C'est cette fraction rationnelle qui leur permet de représenter **exactement** 
 
 ##### Repère de Frenet-Serret — orienter une caméra le long d'une spline
 
-Faire glisser une caméra ou un véhicule le long d'une trajectoire impose plus que la position : il faut **un repère orthonormé local** $(T, N, B)$ (tangente, normale, binormale) qui définit l'orientation à chaque instant. Le repère de **Frenet-Serret** se calcule à partir de la dérivée première et seconde de la courbe :
+Faire glisser une caméra ou un véhicule le long d'une trajectoire requiert plus que la position : il faut **un repère orthonormé local** $(T, N, B)$ (tangente, normale, binormale) qui définit l'orientation à chaque instant. Le repère de **Frenet-Serret** se calcule à partir de la dérivée première et seconde de la courbe :
 
 ```math
 T(t) = \frac{C'(t)}{\|C'(t)\|}, \quad
@@ -744,13 +744,13 @@ Les angles d'Euler (yaw / pitch / roll) souffrent du **gimbal lock** (perte d'un
 
 ##### Définition
 
-Un quaternion s'écrit :
+Un quaternion étend les nombres complexes à quatre dimensions : une partie scalaire réelle $w$ et trois parties imaginaires $x$, $y$, $z$ associées aux unités $\mathbf{i}$, $\mathbf{j}$, $\mathbf{k}$. Il s'écrit :
 
 ```math
 \mathbf{q} = w + x\,\mathbf{i} + y\,\mathbf{j} + z\,\mathbf{k} = (w,\ x,\ y,\ z)
 ```
 
-avec les règles : $\mathbf{i}^2 = \mathbf{j}^2 = \mathbf{k}^2 = \mathbf{i}\mathbf{j}\mathbf{k} = -1$.
+avec les règles de multiplication : $\mathbf{i}^2 = \mathbf{j}^2 = \mathbf{k}^2 = \mathbf{i}\mathbf{j}\mathbf{k} = -1$.
 
 Pour représenter une rotation d'angle $\theta$ autour d'un axe unitaire $\mathbf{u} = (u_x, u_y, u_z)$, on utilise un **quaternion unitaire** :
 
@@ -779,7 +779,7 @@ w_a z_b + x_a y_b - y_a x_b + z_a w_b
 
 > La multiplication de quaternions **n'est pas commutative** : $\mathbf{q}_a \mathbf{q}_b \neq \mathbf{q}_b \mathbf{q}_a$.
 
-**Composition de rotations** — convention. Avec la formule de rotation $\mathbf{v}' = \mathbf{q}\,\mathbf{p}\,\mathbf{q}^{-1}$ (présentée juste après), pour appliquer **d'abord** $\mathbf{q}_1$ **puis** $\mathbf{q}_2$ on calcule :
+**Composition de rotations** — attention à la convention d'ordre : avec la formule de rotation $\mathbf{v}' = \mathbf{q}\,\mathbf{p}\,\mathbf{q}^{-1}$ (présentée juste après), pour appliquer **d'abord** $\mathbf{q}_1$ **puis** $\mathbf{q}_2$ on calcule :
 
 ```math
 \mathbf{q}_\text{total} = \mathbf{q}_2 \, \mathbf{q}_1
@@ -842,9 +842,9 @@ S(s_x, s_y, s_z) = \begin{pmatrix} s_x & 0 & 0 & 0 \\ 0 & s_y & 0 & 0 \\ 0 & 0 &
 
 #### Cisaillement
 
-Le **cisaillement** est une transformation géométrique qui déforme un objet en le poussant le long d'un axe parallèle à un autre axe. Il peut être considéré comme une combinaison de translations et d'étirements.
+Le **cisaillement** est une transformation géométrique qui déforme un objet en le poussant le long d'un axe parallèle à un autre axe. Il peut être considéré comme une combinaison de translations et d'étirements. La forme de la matrice diffère selon la dimension de l'espace de travail.
 
-En 2D :
+**En 2D**, la matrice de cisaillement de $x$ par $y$ s'écrit :
 
 ```math
 \begin{pmatrix} 1 & a & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{pmatrix}
@@ -860,15 +860,15 @@ S_{xy}(a) = \begin{pmatrix} 1 & a & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0
 
 Combiner plusieurs cisaillements revient à multiplier ces matrices (l'ordre compte). Mettre simultanément les six coefficients hors-diagonale dans une même matrice produit une **transformation affine générale**, pas un cisaillement pur — à utiliser avec prudence.
 
-La multiplication produit :
+Appliquée à un vecteur position homogène, la matrice de cisaillement déplace une coordonnée proportionnellement à une autre, laissant les axes restants inchangés. La multiplication donne :
 
-**En 2D :**
+**En 2D :** la coordonnée $x$ est décalée d'une quantité $a \cdot y$, tandis que $y$ est préservé.
 
 ```math
 \mathbf{v}'_h = \begin{pmatrix} 1 & a & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{pmatrix} \begin{pmatrix} x \\ y \\ 1 \end{pmatrix} = \begin{pmatrix} x + a y \\ y \\ 1 \end{pmatrix}
 ```
 
-**En 3D, cisaillement de $x$ par $y$ :**
+**En 3D, cisaillement de $x$ par $y$ :** de même, seule la composante $x$ est modifiée.
 
 ```math
 \mathbf{v}'_h = S_{xy}(a) \begin{pmatrix} x \\ y \\ z \\ 1 \end{pmatrix} = \begin{pmatrix} x + a y \\ y \\ z \\ 1 \end{pmatrix}
@@ -912,19 +912,7 @@ où $\theta$ est l'angle de vue (**FOV**, *Field Of View* — l'angle d'ouvertur
 
 > ℹ Nous vous invitons à ne pas confondre la **perspective**, qui fait référence à la façon dont les objets apparaissent différents en taille et en forme en fonction de leur position et de leur distance par rapport à un point de vue, et la **projection perspective**, vue juste avant, qui est une méthode utilisée pour projeter des objets en 3D sur un plan en 2D en utilisant une caméra virtuelle.
 
-La perspective est une transformation utilisée en informatique graphique pour donner une **impression de profondeur** et de distance aux objets en 3D. Elle peut être représentée en 3D par la même matrice 4×4 que la projection perspective :
-
-```math
-\begin{pmatrix} \dfrac{1}{\tan\left(\dfrac{\theta}{2}\right)} & 0 & 0 & 0 \\ 0 & \dfrac{h}{w\cdot\tan\left(\dfrac{\theta}{2}\right)} & 0 & 0 \\ 0 & 0 & \dfrac{-(f+n)}{f-n} & \dfrac{-2fn}{f-n} \\ 0 & 0 & -1 & 0 \end{pmatrix}
-```
-
-Cette matrice peut être utilisée pour transformer un vecteur de position homogène
-
-```math
-\begin{pmatrix} x \\ y \\ z \\ 1 \end{pmatrix}
-```
-
-en un nouveau vecteur de position homogène qui représente la position de l'objet vue depuis le point de vue de l'observateur, en appliquant une perspective qui diminue la taille des objets à mesure qu'ils s'éloignent.
+La perspective est une transformation utilisée en informatique graphique pour donner une **impression de profondeur** et de distance aux objets en 3D. Elle est encodée par la même matrice 4×4 que la projection perspective présentée à la section précédente : cette matrice transforme un vecteur de position homogène $\begin{pmatrix} x & y & z & 1 \end{pmatrix}^T$ en un nouveau vecteur dont la division par $w$ (division perspective) produit les coordonnées NDC, réduisant la taille apparente des objets à mesure qu'ils s'éloignent.
 
 #### Transformation de vue
 
@@ -1025,7 +1013,7 @@ Les formes géométriques peuvent être de différentes sortes : des lignes droi
 
 ##### Exemple
 
-Prenons un cercle de rayon $r$ centré en $(x_c, y_c)$ sur un plan cartésien. Sa représentation mathématique est donnée par l'équation suivante :
+**Exemple.** Prenons un cercle de rayon $r$ centré en $(x_c, y_c)$ sur un plan cartésien. Sa représentation mathématique est donnée par l'équation suivante :
 
 ```math
 (x - x_c)^2 + (y - y_c)^2 = r^2
@@ -1121,8 +1109,8 @@ Les images bitmap peuvent être stockées en utilisant différents espaces de co
 
 Quand vous voyez une couleur `(0.5, 0.5, 0.5)` stockée dans une texture, à quoi correspond-elle physiquement ? À 50 % de la lumière émise par un pixel blanc ? Ou à 50 % de "l'éclat perçu" par l'œil ? Les deux sont **complètement différents** parce que :
 
-1. L'œil humain est **non-linéaire** : il distingue mieux les nuances dans les sombres que dans les clairs. Un pixel à 50 % de l'éclat perçu correspond en fait à environ 22 % de l'éclat physique réel.
-2. Les écrans LCD/OLED appliquent traditionnellement une **courbe gamma** (~2.2) à leur entrée pour compenser ce biais perceptuel — c'est ce qui définit l'espace **sRGB**.
+1. L'œil humain est **non-linéaire** : il distingue mieux les nuances dans les sombres que dans les clairs. Une valeur numérique à 50 % de l'éclat perçu par l'œil ne correspond qu'à environ 22 % de l'éclat physique réel émis.
+2. L'espace **sRGB** encode les couleurs selon cette perception non-linéaire : la relation $C_\text{linéaire} \approx C_\text{sRGB}^{2{,}2}$ est une **approximation** commode. La vraie courbe sRGB est définie par morceaux, avec un segment **linéaire** près de zéro (voir ci-dessous).
 
 ```math
 C_\text{linéaire} \approx C_\text{sRGB}^{2.2}
@@ -1130,7 +1118,7 @@ C_\text{linéaire} \approx C_\text{sRGB}^{2.2}
 C_\text{sRGB} \approx C_\text{linéaire}^{1/2.2}
 ```
 
-(la formule sRGB exacte est par morceaux, mais $2.2$ est une excellente approximation utilisée par les shaders.)
+(ces formules sont pratiques pour les shaders, mais ne correspondent pas exactement à la norme sRGB.)
 
 ##### La courbe sRGB exacte (norme IEC 61966-2-1)
 
@@ -1160,9 +1148,9 @@ L'exposant effectif global ($\approx 2{,}4$ avec offset) revient à un gamma moy
 > - **Bloom** : effet visuel qui simule le débordement lumineux des sources très brillantes (halo autour d'un soleil, d'une lampe). On extrait la part « haute lumière » du framebuffer, on la floute, et on la rajoute sur l'image finale.
 > - **Exposition** : un facteur multiplicatif sur l'image HDR avant tonemapping, qui simule l'iris de l'œil ou le diaphragme de l'appareil photo. Une scène plongée dans le noir va « surexposer » progressivement pour révéler les détails.
 
-La règle pratique reste :
+La règle pratique à retenir pour tout jeu moderne est donc :
 
-1. **Linéariser à la lecture** des textures *color* (albedo, ambient occlusion baked dans une texture couleur). Les textures **non-color** (normal map, roughness, metallic, masque) sont stockées et lues **linéaire brut** — leur quantifier une courbe gamma fausserait les calculs.
+1. **Linéariser à la lecture** des textures *color* (albedo, ambient occlusion baked dans une texture couleur). Les textures **non-color** (normal map, roughness, metallic, masque) sont stockées et lues **linéaire brut** — leur appliquer une courbe gamma fausserait les calculs.
 2. **Tous les calculs** (éclairage, alpha-blending, post-process) en linéaire.
 3. **Gamma-correction à l'écriture** finale dans le framebuffer (ou laisser le format `*_SRGB` du *swap chain* le faire).
 
@@ -1289,7 +1277,7 @@ L'**animation par squelette** (*Rigging*), également appelée animation par arm
 
 Chaque os de l'armature est associé à une partie de l'objet 3D et déforme cette partie lorsqu'il est déplacé ou orienté. L'animation par squelette est largement utilisée pour animer des **personnages** et des **créatures** dans les jeux vidéo et les films d'animation.
 
-Une armature est un ensemble de **nœuds** (ou articulations) reliés par des **os**. Les nœuds ont des positions 3D et des orientations, généralement représentées par des matrices de transformation 4×4. Pour déterminer la position et l'orientation d'un nœud, on utilise la relation suivante :
+Une armature est un ensemble de **nœuds** (appelés *joints* ou *os*) reliés entre eux par des **liaisons rigides**. Les nœuds ont des positions 3D et des orientations, généralement représentées par des matrices de transformation 4×4. Pour déterminer la position et l'orientation d'un nœud, on utilise la relation suivante :
 
 ```math
 T_\text{parent} \times T_\text{local} = T_\text{global}
@@ -1303,7 +1291,7 @@ L'animation d'une armature consiste à modifier les matrices de transformation l
 
 L'**animation de forme**, également appelée *morphing* ou interpolation de formes, consiste à interpoler entre différentes formes d'un objet 3D pour créer des animations. Cette technique est souvent utilisée pour animer des objets dont la géométrie change de manière complexe, comme les **visages** ou les **vêtements**.
 
-L'animation de forme implique généralement l'**interpolation linéaire** entre les positions des sommets des différentes formes. Pour interpoler entre deux formes $A$ et $B$ à un facteur d'interpolation $t$, où $0 \leq t \leq 1$, on utilise la formule suivante :
+Cette technique repose généralement sur l'**interpolation linéaire** entre les positions des sommets des différentes formes. Pour interpoler entre deux formes $A$ et $B$ à un facteur d'interpolation $t$, où $0 \leq t \leq 1$, on utilise la formule suivante :
 
 ```math
 P_\text{interpolated} = (1 - t) \times P_A + t \times P_B
@@ -1317,25 +1305,33 @@ La **cinématique inverse** (*Inverse Kinematics*, IK) est une technique d'anima
 
 Cette technique est particulièrement utile pour les animations interactives — par exemple, lorsqu'un personnage saisit un objet ou marche sur un terrain irrégulier.
 
-La cinématique inverse implique généralement la résolution d'un **système d'équations non linéaires** décrivant les positions et les orientations des nœuds de l'armature. Trois grandes familles d'algorithmes existent :
+La cinématique inverse nécessite la résolution d'un **système d'équations non linéaires** décrivant les positions et les orientations des nœuds de l'armature. Trois grandes familles d'algorithmes permettent de l'approcher :
 
 #### Méthodes basées sur la Jacobienne
 
 Soit $\boldsymbol{\theta} = (\theta_1, \dots, \theta_n)$ le vecteur des angles articulaires et $\mathbf{e}(\boldsymbol{\theta})$ la position de l'effecteur (fonction non-linéaire). On cherche $\boldsymbol{\theta}^\star$ tel que $\mathbf{e}(\boldsymbol{\theta}^\star)$ atteigne la cible $\mathbf{e}_\text{cible}$. La **Jacobienne** $J = \partial \mathbf{e} / \partial \boldsymbol{\theta}$ relie une petite variation des angles à une petite variation de l'effecteur : $\Delta \mathbf{e} \approx J\,\Delta \boldsymbol{\theta}$.
 
-> **Notation.** Le symbole $\partial$ (lu "d rond") désigne une **dérivée partielle** : $\partial f / \partial x$ signifie "comment $f$ varie quand on bouge **uniquement** $x$, en gardant les autres variables fixes". C'est la généralisation aux fonctions à plusieurs variables de la dérivée classique $\mathrm{d}f / \mathrm{d}x$. La **Jacobienne** d'une fonction vectorielle $\mathbf{e}(\boldsymbol{\theta})$ est la matrice qui regroupe **toutes** les dérivées partielles : $J_{ij} = \partial e_i / \partial \theta_j$. Pour une chaîne IK à 3 articulations qui sortie une position 3D, $J$ est une matrice $3 \times 3$.
+> **Notation.** Le symbole $\partial$ (lu "d rond") désigne une **dérivée partielle** : $\partial f / \partial x$ signifie "comment $f$ varie quand on bouge **uniquement** $x$, en gardant les autres variables fixes". C'est la généralisation aux fonctions à plusieurs variables de la dérivée classique $\mathrm{d}f / \mathrm{d}x$. La **Jacobienne** d'une fonction vectorielle $\mathbf{e}(\boldsymbol{\theta})$ est la matrice qui regroupe **toutes** les dérivées partielles : $J_{ij} = \partial e_i / \partial \theta_j$. Pour une chaîne IK à 3 articulations qui produit une position 3D en sortie, $J$ est une matrice $3 \times 3$.
 
-On itère :
+La mise à jour itérative des angles s'écrit, à chaque pas, en fonction de l'erreur courante et d'une forme de l'inverse de la Jacobienne :
 
 ```math
 \Delta \boldsymbol{\theta} = J^{+}\,(\mathbf{e}_\text{cible} - \mathbf{e}(\boldsymbol{\theta}))
 ```
 
-où $J^{+}$ est la **pseudo-inverse** de Moore-Penrose. Trois variantes :
+où $J^{+}$ est la **pseudo-inverse** de Moore-Penrose. Selon la manière dont on approche $J^{+}$, on obtient trois variantes :
 
-- **Jacobienne transposée** : on remplace $J^{+}$ par $J^{T}$. Très peu coûteux, mais convergence lente et choix de $\alpha$ délicat. Bon pour des chaînes de 2-3 articulations.
-- **Pseudo-inverse** ($J^{+} = J^{T}(JJ^{T})^{-1}$) : converge en peu d'itérations mais explose près des **singularités** (coude tendu, par exemple) où $JJ^{T}$ devient singulière.
-- **Damped Least Squares** (DLS, Levenberg-Marquardt) : $\Delta \boldsymbol{\theta} = J^{T}(JJ^{T} + \lambda^2 I)^{-1}\,(\mathbf{e}_\text{cible} - \mathbf{e})$. Le terme d'amortissement $\lambda$ stabilise les singularités au prix d'un peu de précision. C'est l'ossature classique des solveurs IK qu'on retrouve aussi bien dans Maya que dans les middleware côté moteur de jeu.
+- **Jacobienne transposée** : on remplace $J^{+}$ par $J^{T}$.
+  - *Avantages* : très peu coûteux (pas d'inversion de matrice), implémentation triviale.
+  - *Inconvénients* : convergence lente, le pas de descente $\alpha$ est difficile à régler, comportement médiocre sur les chaînes longues.
+
+- **Pseudo-inverse** ($J^{+} = J^{T}(JJ^{T})^{-1}$) : solution au sens des moindres carrés.
+  - *Avantages* : convergence rapide, solution minimisant la norme $\|\Delta\boldsymbol{\theta}\|$.
+  - *Inconvénients* : instable près des **singularités** (coude tendu, par exemple) où $JJ^{T}$ devient singulière ou mal conditionnée.
+
+- **Damped Least Squares** (DLS, Levenberg-Marquardt) : $\Delta \boldsymbol{\theta} = J^{T}(JJ^{T} + \lambda^2 I)^{-1}\,(\mathbf{e}_\text{cible} - \mathbf{e})$.
+  - *Avantages* : le terme d'amortissement $\lambda$ régularise le système et supprime les instabilités aux singularités ; c'est l'ossature classique des solveurs IK qu'on retrouve aussi bien dans Maya que dans les middleware côté moteur de jeu.
+  - *Inconvénients* : introduit une erreur résiduelle au voisinage des singularités (l'effecteur ne peut plus atteindre exactement la cible) ; le réglage de $\lambda$ est souvent empirique.
 
 #### CCD — Cyclic Coordinate Descent
 
@@ -1362,13 +1358,13 @@ Les principales composantes de la physique des jeux incluent la simulation physi
 
 ### Simulation physique
 
-La simulation physique calcule les **mouvements** et les **forces** qui agissent sur les objets. Le point de départ reste la **deuxième loi de Newton** :
+La simulation physique calcule les **forces** appliquées aux corps et en déduit leurs **mouvements**. Le point de départ reste la **deuxième loi de Newton** :
 
 ```math
 \mathbf{F} = m\,\mathbf{a}
 ```
 
-où $\mathbf{F}$ est la résultante des forces (vecteur), $m$ la masse de l'objet (scalaire) et $\mathbf{a}$ son accélération (vecteur). Les forces peuvent inclure la gravité, les forces de contact, le frottement, et d'autres forces externes ; l'accélération s'obtient en sommant l'ensemble :
+où $\mathbf{F}$ est la résultante des forces (vecteur), $m$ la masse de l'objet (scalaire) et $\mathbf{a}$ son accélération (vecteur). Les forces peuvent inclure la gravité, les forces de contact, le frottement et d'autres forces externes. L'accélération résultante s'obtient en les sommant :
 
 ```math
 \mathbf{a} = \frac{1}{m}\sum_i \mathbf{F}_i
@@ -1386,25 +1382,34 @@ Position et vitesse sont ensuite intégrées dans le temps. La méthode la plus 
 
 où $\Delta t$ est le pas de temps. Euler explicite gagne en simplicité ce qu'il perd en stabilité : sur de longues simulations, il introduit une dérive énergétique (les ressorts gagnent de l'énergie, les orbites s'écartent). On lui préfère :
 
-- **Euler semi-implicite** (*symplectic Euler*) : on met à jour la vitesse **avant** la position. Conserve l'énergie sur les systèmes oscillants (au sens d'*intégrateur symplectique* : pas exactement énergie-préservant, mais l'erreur d'énergie reste bornée — pas de dérive séculaire). **Le défaut par défaut** dans la plupart des moteurs de jeu.
+- **Euler semi-implicite** (*symplectic Euler*) : on met à jour la vitesse **avant** la position, ce qui en fait un *intégrateur symplectique*.
 
 ```math
 \mathbf{v}_{t+1} = \mathbf{v}_t + \mathbf{a}(\mathbf{p}_t)\,\Delta t, \qquad \mathbf{p}_{t+1} = \mathbf{p}_t + \mathbf{v}_{t+1}\,\Delta t
 ```
 
-- **Verlet de position** (Verlet, 1967) : on n'entrepose pas la vitesse, on la déduit des deux dernières positions. Élégant pour les systèmes contraints (*Position-Based Dynamics*, ragdolls de Hitman) :
+  - *Avantages* : l'erreur d'énergie reste bornée sur la durée (pas de dérive séculaire) ; simple à implémenter ; **le défaut par défaut** dans la plupart des moteurs de jeu (Box2D, Bullet, PhysX).
+  - *Inconvénients* : légèrement moins précis qu'Euler explicite sur un seul pas ; pas adapté aux contraintes d'angle complexes.
+
+- **Verlet de position** (Verlet, 1967) : on n'entrepose pas la vitesse explicitement, on la déduit des deux dernières positions.
 
 ```math
 \mathbf{p}_{t+1} = 2\,\mathbf{p}_t - \mathbf{p}_{t-1} + \mathbf{a}(\mathbf{p}_t)\,\Delta t^2
 ```
 
-- **Velocity Verlet** : variante qui maintient explicitement la vitesse, exacte à l'ordre 2 sur la position et l'ordre 1 sur la vitesse, conserve très bien l'énergie sur les systèmes oscillants. Utilisée par les moteurs de cloth, de soft-body et de simulation moléculaire.
+  - *Avantages* : élégant pour les systèmes contraints (*Position-Based Dynamics*, ragdolls de *Hitman*) ; bonne conservation de l'énergie.
+  - *Inconvénients* : nécessite de conserver deux états consécutifs ; la vitesse n'est disponible qu'a posteriori (précision réduite lors d'une application de force instantanée).
+
+- **Velocity Verlet** : variante qui maintient explicitement la vitesse.
 
 ```math
 \mathbf{p}_{t+1} = \mathbf{p}_t + \mathbf{v}_t\,\Delta t + \tfrac{1}{2}\,\mathbf{a}(\mathbf{p}_t)\,\Delta t^2, \qquad \mathbf{v}_{t+1} = \mathbf{v}_t + \tfrac{1}{2}\big[\mathbf{a}(\mathbf{p}_t) + \mathbf{a}(\mathbf{p}_{t+1})\big]\,\Delta t
 ```
 
-- **Runge-Kutta 4 (RK4)** : très précis (erreur en $O(\Delta t^5)$) mais coûteux — quatre évaluations de la dérivée par pas — et **non symplectique**, donc dérive énergétique sur les longues simulations malgré sa précision. Utilisé en simulation aérospatiale ou physique éducative, rarement dans les jeux temps réel. Pour un système $\dot{\mathbf{y}} = f(\mathbf{y})$ :
+  - *Avantages* : exacte à l'ordre 2 sur la position et la vitesse ; très bonne conservation de l'énergie ; utilisée par les moteurs de cloth, de soft-body et de simulation moléculaire.
+  - *Inconvénients* : requiert deux évaluations de l'accélération par pas (légèrement plus coûteux que le semi-implicite).
+
+- **Runge-Kutta 4 (RK4)** : méthode à quatre étages, très précise (erreur en $O(\Delta t^5)$). Pour un système $\dot{\mathbf{y}} = f(\mathbf{y})$ :
 
 ```math
 \begin{aligned}
@@ -1416,11 +1421,14 @@ où $\Delta t$ est le pas de temps. Euler explicite gagne en simplicité ce qu'i
 \end{aligned}
 ```
 
+  - *Avantages* : très haute précision par pas ($O(\Delta t^5)$) ; idéal pour les simulations aérospatiales, de trajectoire balistique et les démos physiques éducatives.
+  - *Inconvénients* : quatre évaluations de la dérivée par pas (4× plus coûteux qu'Euler) ; **non symplectique** — l'énergie dérive lentement sur les longues simulations malgré sa précision locale ; rarement utilisé dans les jeux temps réel.
+
 > **Pourquoi les moteurs de jeu privilégient le semi-implicite et le Verlet plutôt que RK4.** Dans un jeu, on simule presque toujours pendant des minutes ou des heures sans interruption, donc la stabilité énergétique sur la durée compte plus que la précision instantanée. Une dérive lente d'un canon en orbite finit par se voir au bout de quelques dizaines de secondes ; en revanche, une erreur de quelques centimètres sur la trajectoire d'un obus qui parcourt cent mètres reste totalement invisible. C'est pour cette raison que les moteurs de physique grand public (Box2D, Bullet, PhysX) choisissent par défaut un intégrateur symplectique, et que les moteurs de tissu reposent sur du Verlet : on préfère un comportement qui ne s'emballe jamais à un comportement très précis sur un pas mais instable sur la durée.
 
 #### Le pas de simulation n'est pas le pas de rendu
 
-C'est *le* piège du game-dev débutant : faire l'intégration physique avec le `Δt` de la frame courante (variable selon la machine). Conséquences :
+C'est l'un des pièges les plus courants du game-dev débutant : faire l'intégration physique avec le `Δt` de la frame courante, qui varie selon la charge machine. Cela entraîne trois problèmes distincts :
 
 1. **Comportement non déterministe** : le même replay donne des résultats différents sur deux machines parce que les `dt` ne sont pas identiques.
 2. **Tunneling** : un objet rapide traverse un mur si la frame est lente, parce que `position += velocity * dt` saute par-dessus la collision.
@@ -1429,8 +1437,12 @@ C'est *le* piège du game-dev débutant : faire l'intégration physique avec le 
 La solution canonique (Glenn Fiedler, [*"Fix Your Timestep"*](https://gafferongames.com/post/fix_your_timestep/)) :
 
 ```text
-fixedDt   = 1/60               // pas de simulation, constant
-accumulator += frameDelta      // temps réel écoulé depuis la dernière frame
+fixedDt     = 1/60             // pas de simulation, constant (ex. : 60 Hz)
+accumulator = 0.0              // temps accumulé non encore simulé (initialisé à 0)
+
+// — boucle principale, appelée à chaque frame —
+dt          = frameDelta       // temps réel écoulé depuis la dernière frame
+accumulator += dt
 while accumulator >= fixedDt:
  physicsStep(fixedDt)       // itération à pas constant, déterministe
  accumulator -= fixedDt
@@ -2259,7 +2271,7 @@ B --> C(Cible de rendu)
 C --> D(Texture de sortie)
 ```
 
-Bien que les détails de ces opérations dépendent du langage de programmation utilisé pour écrire les shaders (GLSL, HLSL, WGSL...), ils peuvent également effectuer d'autres opérations sur les sommets : application de textures, génération de coordonnées de texture, ou envoi de données supplémentaires aux shaders de géométrie et de fragment.
+En plus de transformer les positions des sommets, les vertex shaders peuvent également effectuer d'autres opérations : application de textures, génération de coordonnées de texture, ou envoi de données supplémentaires aux shaders de géométrie et de fragment. Le choix du langage (GLSL, HLSL, WGSL...) dépend du moteur et de la plateforme cible.
 
 #### Geometry shaders
 
