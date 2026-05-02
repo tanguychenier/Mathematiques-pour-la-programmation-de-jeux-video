@@ -115,6 +115,8 @@ Les coordonnées cartésiennes sont un système de coordonnées permettant de re
 
 > Les nombres **réels** sont une extension des nombres rationnels qui permettent de représenter toutes les grandeurs physiques, y compris les nombres irrationnels tels que $\pi$ et $\sqrt{2}$.
 >
+> **Petit aide-mémoire de notation.** $\pi \approx 3{,}14159$ est le rapport circonférence/diamètre d'un cercle ; il revient partout en trigonométrie et en géométrie. Le symbole $\sqrt{x}$ désigne la **racine carrée** de $x$ (le nombre positif dont le carré vaut $x$) ; plus généralement, $\sqrt[n]{x}$ est la **racine n-ième** de $x$ (le nombre positif dont la puissance $n$ vaut $x$). $|x|$ note la **valeur absolue** d'un nombre (sa version positive : $|-3| = 3$) — à ne pas confondre plus loin avec $\|\mathbf{v}\|$, qui désigne la **norme** d'un vecteur (sa longueur). Enfin, $\approx$ se lit "approximativement égal à", $\equiv$ "identiquement égal à" (égalité par définition ou modulo) et $\propto$ "proportionnel à".
+>
 > <img align="center" src="https://2.bp.blogspot.com/-E6UXjmd-37Q/WlEur3M7wtI/AAAAAAAALyQ/KDwmVBLf7CE_VQbHJ3gx-LHjf6aymu6OwCLcBGAs/s640/ob_83e7ec_ensembles.png" alt="Ensembles de nombres" width="420">
 
 En **2D**, l'espace cartésien est un plan composé d'un axe horizontal et d'un axe vertical. Les coordonnées d'un point dans ce plan sont généralement notées $(x, y)$, où $x$ est l'**abscisse** (horizontal) et $y$ est l'**ordonnée** (vertical).
@@ -169,6 +171,8 @@ Les moteurs et outils ne sont pas d'accord :
 ### Précision flottante : ce que tout dev de jeu doit savoir
 
 Les nombres réels n'existent pas en machine. Ce que votre CPU/GPU manipule, ce sont des **flottants IEEE 754**, et leurs limites se révèlent dès qu'on programme un jeu sérieux.
+
+> **IEEE 754** est la norme internationale (1985, révisée en 2008/2019) qui définit comment encoder un nombre réel sur 32 bits (`float` / `binary32`), 64 bits (`double` / `binary64`) ou 16 bits (`half` / `binary16`, omniprésent sur GPU). Trois zones : un **bit de signe**, un **exposant biaisé** (l'exposant réel auquel on ajoute un offset constant — 127 pour binary32 — pour éviter d'avoir à gérer un signe sur l'exposant) et une **mantisse** (les chiffres significatifs après le `1.` implicite). La norme spécifie aussi les valeurs spéciales `NaN`, `+∞`, `-∞`, `-0`, et les modes d'arrondi.
 
 #### Représentation : le format `float` 32 bits
 
@@ -898,7 +902,7 @@ La projection **perspective** peut être représentée en 3D par une matrice 4×
 \begin{pmatrix} \dfrac{1}{\tan\left(\dfrac{\theta}{2}\right)} & 0 & 0 & 0 \\ 0 & \dfrac{h}{w\cdot\tan\left(\dfrac{\theta}{2}\right)} & 0 & 0 \\ 0 & 0 & \dfrac{-(f+n)}{f-n} & \dfrac{-2fn}{f-n} \\ 0 & 0 & -1 & 0 \end{pmatrix}
 ```
 
-où $\theta$ est l'angle de vue (FOV), $w$ et $h$ sont les largeur et hauteur de l'écran, $n$ et $f$ sont les distances du plan de coupe avant (*near*) et arrière (*far*).
+où $\theta$ est l'angle de vue (**FOV**, *Field Of View* — l'angle d'ouverture de la caméra, exprimé en degrés ou radians : 60° pour un FPS classique, 90°-100° pour un jeu compétitif), $w$ et $h$ sont les largeur et hauteur de l'écran, $n$ et $f$ sont les distances du plan de coupe avant (*near*) et arrière (*far*) du **frustum** (le volume tronc-de-pyramide visible par la caméra, voir plus bas).
 
 #### Perspective
 
@@ -960,7 +964,7 @@ E -->|Viewport| F[Espace écran<br/>pixels]
 | **NDC** | cube $[-1, 1]^3$ | espace normalisé après division par $w$ |
 | **Écran** | pixels | affichage final |
 
-La transformation complète d'un sommet $\mathbf{v}_{\text{local}}$ s'écrit comme un produit de matrices, appliqué dans l'ordre $\text{modèle} \to \text{vue} \to \text{projection}$ — c'est la fameuse matrice **MVP** :
+La transformation complète d'un sommet $\mathbf{v}_{\text{local}}$ s'écrit comme un produit de matrices, appliqué dans l'ordre $\text{modèle} \to \text{vue} \to \text{projection}$ — c'est la fameuse matrice **MVP** (*Model-View-Projection*, le produit $P \cdot V \cdot M$ qu'on uploade comme uniform à chaque shader pour positionner correctement chaque sommet) :
 
 ```math
 \mathbf{v}_{\text{clip}} = P \cdot V \cdot M \cdot \mathbf{v}_{\text{local}}
@@ -1148,7 +1152,7 @@ L'exposant effectif global ($\approx 2{,}4$ avec offset) revient à un gamma moy
 
 > **Le bug classique** : un junior met une texture albedo en `RGBA8_UNORM` au lieu de `RGBA8_SRGB`. Le shader croit lire du linéaire, fait ses calculs sur des chiffres déjà gamma-corrigés, le résultat est trop sombre dans les ombres et trop clair dans les highlights. C'est exactement ce qui produisait l'aspect "PS3" de certains jeux mal calibrés des années 2008-2012.
 >
-> **Qu'est-ce que le HDR (*High Dynamic Range*) ?** Plage dynamique étendue : on stocke des composantes au-delà de `[0, 1]` (un soleil peut faire `(50, 50, 50)`). Cela ouvre la porte au *bloom*, à l'*exposition*, et au *tonemapping* (Reinhard, ACES, etc.) qui ramène la scène HDR dans la plage `[0, 1]` affichable par l'écran. Indispensable en PBR.
+> **Qu'est-ce que le HDR (*High Dynamic Range*) ?** Plage dynamique étendue : on stocke des composantes au-delà de `[0, 1]` (un soleil peut faire `(50, 50, 50)`). Cela ouvre la porte au *bloom*, à l'*exposition*, et au **tonemapping** — courbe de compression $f : \mathbb{R}^+ \to [0, 1]$ qui ramène la scène HDR dans la plage affichable par l'écran. Les deux opérateurs vedettes sont **Reinhard** ($f(x) = x/(1+x)$, simple et doux) et **ACES** (*Academy Color Encoding System*, courbe en S inspirée du cinéma, plus filmique — c'est le défaut de Unreal et de plus en plus de jeux AAA). Indispensable en PBR.
 
 ### Formats de fichier d'image
 
@@ -1292,7 +1296,11 @@ La cinématique inverse implique généralement la résolution d'un **système d
 
 #### Méthodes basées sur la Jacobienne
 
-Soit $\boldsymbol{\theta} = (\theta_1, \dots, \theta_n)$ le vecteur des angles articulaires et $\mathbf{e}(\boldsymbol{\theta})$ la position de l'effecteur (fonction non-linéaire). On cherche $\boldsymbol{\theta}^\star$ tel que $\mathbf{e}(\boldsymbol{\theta}^\star)$ atteigne la cible $\mathbf{e}_\text{cible}$. La **Jacobienne** $J = \partial \mathbf{e} / \partial \boldsymbol{\theta}$ relie une petite variation des angles à une petite variation de l'effecteur : $\Delta \mathbf{e} \approx J\,\Delta \boldsymbol{\theta}$. On itère :
+Soit $\boldsymbol{\theta} = (\theta_1, \dots, \theta_n)$ le vecteur des angles articulaires et $\mathbf{e}(\boldsymbol{\theta})$ la position de l'effecteur (fonction non-linéaire). On cherche $\boldsymbol{\theta}^\star$ tel que $\mathbf{e}(\boldsymbol{\theta}^\star)$ atteigne la cible $\mathbf{e}_\text{cible}$. La **Jacobienne** $J = \partial \mathbf{e} / \partial \boldsymbol{\theta}$ relie une petite variation des angles à une petite variation de l'effecteur : $\Delta \mathbf{e} \approx J\,\Delta \boldsymbol{\theta}$.
+
+> **Notation.** Le symbole $\partial$ (lu "d rond") désigne une **dérivée partielle** : $\partial f / \partial x$ signifie "comment $f$ varie quand on bouge **uniquement** $x$, en gardant les autres variables fixes". C'est la généralisation aux fonctions à plusieurs variables de la dérivée classique $\mathrm{d}f / \mathrm{d}x$. La **Jacobienne** d'une fonction vectorielle $\mathbf{e}(\boldsymbol{\theta})$ est la matrice qui regroupe **toutes** les dérivées partielles : $J_{ij} = \partial e_i / \partial \theta_j$. Pour une chaîne IK à 3 articulations qui sortie une position 3D, $J$ est une matrice $3 \times 3$.
+
+On itère :
 
 ```math
 \Delta \boldsymbol{\theta} = J^{+}\,(\mathbf{e}_\text{cible} - \mathbf{e}(\boldsymbol{\theta}))
@@ -1411,10 +1419,10 @@ C'est exactement ce que fait Unity (`FixedUpdate`), Unreal (`PhysicsTickRate`), 
 
 La **détection de collision** est le processus par lequel on détermine si deux objets se touchent ou se croisent. Il existe de nombreuses techniques pour détecter les collisions :
 
-- les tests de **boîtes englobantes** (AABB — *Axis-Aligned Bounding Box*) ;
-- les tests de **sphères englobantes** ;
-- les tests de **séparation d'axes** (SAT — *Separating Axis Theorem*) ;
-- l'algorithme **GJK** (*Gilbert-Johnson-Keerthi*) pour les formes convexes.
+- les tests de **boîtes englobantes** (**AABB** — *Axis-Aligned Bounding Box* : un parallélépipède rectangle dont les faces sont alignées sur les axes du monde, défini par seulement deux points min/max — c'est le test le plus rapide possible, "deux objets se chevauchent ssi leurs intervalles se chevauchent sur les trois axes") ;
+- les tests de **sphères englobantes** (un seul point + un rayon, encore plus rapide qu'AABB mais plus lâche) ;
+- les tests de **séparation d'axes** (**SAT** — *Separating Axis Theorem* : deux convexes ne se touchent pas s'il existe **un seul axe** sur lequel leurs projections ne se chevauchent pas — il suffit de tester un nombre fini d'axes "candidats" tirés des normales aux faces et arêtes) ;
+- l'algorithme **GJK** (*Gilbert-Johnson-Keerthi*, 1988 — résout la collision entre deux formes convexes en cherchant le point le plus proche de l'origine dans la **différence de Minkowski** $A \ominus B$ ; collision $\Leftrightarrow$ origine $\in A \ominus B$. Standard dans Bullet, Box2D, PhysX).
 
 Chaque technique a ses avantages et ses inconvénients en termes de **précision** et de **performances**.
 
@@ -1618,11 +1626,25 @@ Trois grands paradigmes en jeu vidéo :
 - **Apprentissage par renforcement (RL)** : l'agent apprend une **politique** $\pi(s) \to a$ qui maximise une **récompense cumulée** $\sum_t \gamma^t r_t$. Algorithmes connus : Q-learning, **DQN** (DeepMind sur Atari, 2015), **PPO** (OpenAI Five sur Dota 2, 2018), **AlphaZero** (DeepMind, échecs/Go/shogi, 2017). $\gamma \in [0, 1[$ est le **facteur d'actualisation** : il pénalise les récompenses lointaines pour les rendre comparables.
 - **Modèles génératifs** (LLM, diffusion) : génération de dialogues, de quêtes ou de textures à la volée. Encore expérimental côté production, prometteur pour le contenu procédural narratif (*AI Dungeon*, *Inworld AI* dans *Mecha BREAK*).
 
+> **Vocabulaire express du RL** (*Reinforcement Learning*).
+>
+> - **Agent** : l'entité qui décide et agit (le PNJ, le bot, le pilote virtuel).
+> - **Environnement** : tout le reste — le monde simulé qui réagit aux actions et renvoie des observations.
+> - **État** $s$ : la photo instantanée du monde vue par l'agent (positions, vies, inventaire…).
+> - **Action** $a$ : une décision possible (gauche, droite, tirer, attendre).
+> - **Récompense** $r$ : un nombre réel renvoyé par l'environnement à chaque pas, qui dit si l'agent va dans la "bonne direction" (+1 pour un kill, -100 pour une mort).
+> - **Politique** $\pi(s) \to a$ : la stratégie de l'agent — la fonction qui, étant donné un état, décide quelle action prendre.
+> - **Q-fonction** $Q(s, a)$ : *quelle récompense cumulée espère-t-on en partant de l'état $s$, en faisant l'action $a$, puis en suivant la meilleure politique ensuite ?* C'est la **valeur d'action** que le RL cherche à apprendre.
+> - **DQN** = *Deep Q-Network* : un réseau de neurones qui approxime $Q(s, a)$ pour des espaces d'états énormes (les pixels d'un écran Atari).
+> - **AlphaGo** (DeepMind, 2016) : programme qui a battu les meilleurs humains au Go en combinant MCTS + réseaux de neurones d'évaluation/politique.
+
 ```math
 Q(s, a) \leftarrow Q(s, a) + \alpha\,\Big[r + \gamma \max_{a'} Q(s', a') - Q(s, a)\Big]
 \quad\text{(mise à jour de Bellman, Q-learning)}
 ```
 
+> **L'équation de Bellman** (Richard Bellman, 1957) est le cœur du RL : elle exprime la valeur d'un état comme la récompense immédiate **plus** la valeur (actualisée par $\gamma$) du meilleur état suivant. La règle de mise à jour ci-dessus pousse à chaque pas la valeur estimée $Q(s, a)$ vers cette cible idéale, $\alpha$ étant le pas d'apprentissage.
+>
 > **Le RL fonctionne brillamment dans des environnements simulables**. Pour les jeux multijoueurs en ligne, on n'utilise quasi jamais du RL temps réel : le coût d'inférence + le risque de comportements aberrants sont prohibitifs. Le RL sert plutôt à **entraîner** des politiques offline, qu'on **distille** ensuite en arbres de décision ou tables de lookup pour le runtime (technique utilisée par *Forza Motorsport* pour le drivatar).
 
 [ Retour en haut de page](#table-des-matières)
@@ -1669,6 +1691,9 @@ Les jeux en réseau utilisent différents protocoles de communication pour écha
 - **TCP** (*Transmission Control Protocol*) : protocole de communication **orienté connexion** avec **garantie** de livraison. Il garantit que les paquets de données sont livrés dans l'ordre et sans erreurs. Généralement utilisé pour les communications non critiques pour le temps, telles que le chat en jeu, la mise à jour des classements ou le téléchargement d'assets.
 
 > De plus en plus de jeux modernes utilisent **WebRTC** ou **QUIC** (basé sur UDP), qui combinent fiabilité, faible latence et chiffrement.
+>
+> - **WebRTC** (*Web Real-Time Communication*) : pile P2P standardisée par le W3C, conçue à l'origine pour la visio dans le navigateur (Google Meet, Discord). Inclut traversée NAT (STUN/TURN/ICE), chiffrement DTLS, et un canal de données fiable ou non au choix (*data channels*). De plus en plus utilisée par les jeux web (.io games, *Krunker*).
+> - **QUIC** (Google → IETF, 2021) : protocole de transport au-dessus d'UDP qui combine TCP + TLS + multiplexage HTTP/2 dans une seule poignée de main. Beaucoup moins de RTT à la connexion (0-RTT possible), pas de *head-of-line blocking*, chiffrement obligatoire. C'est la base de **HTTP/3** et un candidat sérieux pour remplacer TCP même en jeu (Riot, Epic l'utilisent côté backend).
 
 #### Synchronisation et latence
 
@@ -1847,6 +1872,14 @@ La **simulation de fluides** dans les jeux vidéo est une technique avancée qui
 
 où $\rho$ est la densité du fluide, $\mathbf{v}$ son champ de vitesse, $p$ la pression, $\mu$ la viscosité dynamique et $\mathbf{f}$ les forces externes.
 
+> **Notations.** $\nabla$ (lu "nabla") est l'**opérateur gradient** : appliqué à un champ scalaire $f(x, y, z)$, il renvoie le **vecteur des dérivées partielles** $\nabla f = (\partial f/\partial x,\ \partial f/\partial y,\ \partial f/\partial z)$, qui pointe dans la direction de plus forte croissance. $\nabla^2 = \nabla \cdot \nabla$ est le **laplacien** (somme des dérivées secondes pures : $\partial^2 f/\partial x^2 + \partial^2 f/\partial y^2 + \partial^2 f/\partial z^2$) — il mesure à quel point un point "diffère de la moyenne de ses voisins" et apparaît dès qu'on modélise diffusion, viscosité ou propagation d'onde. $\partial \mathbf{v}/\partial t$ est la dérivée partielle de la vitesse **par rapport au temps** : c'est l'accélération locale du fluide en un point fixe.
+>
+> **Les trois méthodes numériques classiques.**
+>
+> - **Différences finies** : on quadrille l'espace en grille régulière et on remplace chaque dérivée par une différence entre cases voisines ($\partial f / \partial x \approx (f_{i+1} - f_{i-1}) / (2h)$). Simple à coder, marche bien pour des fluides Eulériens (la grille est fixe, le fluide la traverse).
+> - **Éléments finis** (FEM) : on découpe l'espace en triangles/tétraèdres irréguliers et on cherche la solution sous forme d'une combinaison de fonctions de base locales. Plus précis sur des géométries complexes, mais lourd — utilisé en simulation industrielle, en cloth/soft-body précis (Houdini, Marvelous Designer).
+> - **SPH** (*Smoothed Particle Hydrodynamics*) : approche **Lagrangienne** où le fluide est représenté par un nuage de particules qui transportent vitesse et pression. Chaque particule échantillonne ses voisines avec un noyau lissant. Standard pour l'eau et le sang dans les jeux (Position Based Fluids de NVIDIA, Liquid Simulation de Houdini).
+
 Les méthodes de résolution numérique, telles que la **méthode des différences finies**, la **méthode des éléments finis** ou les méthodes **SPH** (*Smoothed Particle Hydrodynamics*), sont utilisées pour résoudre ces équations et générer des animations réalistes de fluides.
 
 ### Écrans multiples et fenêtrage
@@ -1881,11 +1914,13 @@ L'**équation de rendu** (Kajiya, 1986) décrit, pour une surface au point $\mat
 L_o(\mathbf{x}, \boldsymbol{\omega}_o) = L_e(\mathbf{x}, \boldsymbol{\omega}_o) + \int_{\Omega} f_r(\mathbf{x}, \boldsymbol{\omega}_i, \boldsymbol{\omega}_o)\,L_i(\mathbf{x}, \boldsymbol{\omega}_i)\,(\boldsymbol{\omega}_i \cdot \mathbf{n})\,\mathrm{d}\boldsymbol{\omega}_i
 ```
 
+> **Notations.** Le symbole $\int$ est une **intégrale** : intuitivement, "une somme continue" sur un domaine. Là où $\sum_i$ additionne un nombre fini ou dénombrable de termes, $\int_a^b f(x)\,\mathrm{d}x$ additionne $f(x)$ pour **tous** les $x \in [a, b]$, en pondérant par un élément de longueur $\mathrm{d}x$ infinitésimal — géométriquement, c'est l'aire sous la courbe. $\int_\Omega \dots\,\mathrm{d}\boldsymbol{\omega}$ est une intégrale sur un domaine $\Omega$ (ici l'hémisphère, ensemble de toutes les directions au-dessus de la surface) : on additionne la contribution lumineuse de **toutes** les directions possibles. La lettre $\boldsymbol{\omega}$ (oméga gras) désigne ici un **vecteur direction unitaire** ; $\Omega$ (oméga majuscule) désigne le **domaine** (l'hémisphère). Les angles $\theta$ (latitude/co-latitude, depuis le pôle) et $\phi$ (longitude/azimut, autour du pôle) sont les **coordonnées sphériques** standards utilisées pour paramétrer les directions sur la sphère.
+
 où :
 
 - $L_e$ est l'émission propre de la surface (matériau lumineux, écran).
 - $L_i$ est la lumière incidente venue de la direction $\boldsymbol{\omega}_i$.
-- $f_r$ est la **BRDF** (*Bidirectional Reflectance Distribution Function*) : combien de la lumière entrant par $\boldsymbol{\omega}_i$ ressort vers $\boldsymbol{\omega}_o$.
+- $f_r$ est la **BRDF** (*Bidirectional Reflectance Distribution Function* — fonction de distribution de la réflectance bidirectionnelle) : combien de la lumière entrant par $\boldsymbol{\omega}_i$ ressort vers $\boldsymbol{\omega}_o$. C'est *la* signature optique d'un matériau : un miroir, un mur de plâtre et un velours rouge ont chacun leur BRDF caractéristique. Variantes : **BTDF** (*Transmittance*, lumière transmise à travers la surface, pour le verre/l'eau) et **BSDF** (*Scattering*, somme BRDF + BTDF — la fonction complète).
 - $\boldsymbol{\omega}_i \cdot \mathbf{n}$ est le **terme de Lambert** : un faisceau qui frappe la surface à 45° apporte moins d'énergie au m² qu'un faisceau perpendiculaire.
 - $\Omega$ est l'hémisphère au-dessus de la surface.
 
@@ -1952,7 +1987,7 @@ où $V \in \{0, 1\}$ est la **visibilité** dans la direction $\boldsymbol{\omeg
 
 > **Harmoniques sphériques (SH)** : famille de fonctions de base définies sur la sphère unité, analogues à la série de Fourier mais en 2 angles ($\theta, \varphi$) au lieu d'un seul. Elles permettent de **projeter** une fonction quelconque sur la sphère — typiquement la lumière incidente ambiante — sur un nombre fini de coefficients, puis de reconstruire une approximation lisse à partir de ces coefficients.
 
-Toute fonction $f : S^2 \to \mathbb{R}$ se décompose en :
+Toute fonction $f : S^2 \to \mathbb{R}$ (où $S^2$ désigne la **sphère unité** — l'ensemble des directions dans l'espace 3D, soit les vecteurs de norme 1 — et $\mathbb{R}$ l'ensemble des réels) se décompose en :
 
 ```math
 f(\theta, \varphi) = \sum_{\ell = 0}^{\infty} \sum_{m = -\ell}^{\ell} c_\ell^m\,Y_\ell^m(\theta, \varphi)
@@ -2037,13 +2072,20 @@ Pour des triangles, on utilise l'algorithme **Möller-Trumbore** (1997) qui donn
 \begin{pmatrix} -\mathbf{D} & \mathbf{e}_1 & \mathbf{e}_2 \end{pmatrix}\begin{pmatrix} t \\ u \\ v \end{pmatrix} = \mathbf{O} - V_0
 ```
 
-La règle de Cramer combinée à l'identité du **produit mixte** $(\mathbf{a} \times \mathbf{b}) \cdot \mathbf{c} = \det(\mathbf{a}, \mathbf{b}, \mathbf{c})$ donne, en posant $\mathbf{p} = \mathbf{D} \times \mathbf{e}_2$, $\mathbf{T} = \mathbf{O} - V_0$, $\mathbf{q} = \mathbf{T} \times \mathbf{e}_1$ :
+La règle de Cramer combinée à l'identité du **produit mixte** $(\mathbf{a} \times \mathbf{b}) \cdot \mathbf{c} = \det(\mathbf{a}, \mathbf{b}, \mathbf{c})$ — où $\det$ est le **déterminant** (scalaire associé à une matrice carrée qui mesure le facteur de contraction/dilatation des volumes par la transformation, et qui s'annule ssi la matrice n'est pas inversible) — donne, en posant $\mathbf{p} = \mathbf{D} \times \mathbf{e}_2$, $\mathbf{T} = \mathbf{O} - V_0$, $\mathbf{q} = \mathbf{T} \times \mathbf{e}_1$ :
 
 ```math
 t = \frac{\mathbf{q} \cdot \mathbf{e}_2}{\mathbf{p} \cdot \mathbf{e}_1}, \qquad u = \frac{\mathbf{p} \cdot \mathbf{T}}{\mathbf{p} \cdot \mathbf{e}_1}, \qquad v = \frac{\mathbf{q} \cdot \mathbf{D}}{\mathbf{p} \cdot \mathbf{e}_1}
 ```
 
-Le triangle est touché si $\mathbf{p} \cdot \mathbf{e}_1 \ne 0$ (rayon non parallèle), $u \ge 0$, $v \ge 0$, $u + v \le 1$ et $t > t_\text{min}$. Coût : 5 produits scalaires, 2 produits vectoriels, 1 division — soit ~30 flops par test. Les GPUs RTX/RDNA2+ embarquent une unité matérielle (**RT cores**) qui accélère ce test des centaines de fois et le combine avec une descente dans la BVH (*Bounding Volume Hierarchy*).
+Le triangle est touché si $\mathbf{p} \cdot \mathbf{e}_1 \ne 0$ (rayon non parallèle), $u \ge 0$, $v \ge 0$, $u + v \le 1$ et $t > t_\text{min}$. Coût : 5 produits scalaires, 2 produits vectoriels, 1 division — soit ~30 flops par test. Les GPUs RTX/RDNA2+ embarquent une unité matérielle (**RT cores**) qui accélère ce test des centaines de fois et le combine avec une descente dans la **BVH** (*Bounding Volume Hierarchy* — arbre dont chaque nœud englobe ses enfants dans une boîte AABB ; pour tester un rayon contre 1 million de triangles, on commence par tester la racine, puis on descend récursivement seulement dans les enfants intersectés, ce qui réduit la complexité de $O(n)$ à $O(\log n)$ par rayon).
+
+> **Structures spatiales d'accélération.** Quand on a beaucoup d'objets ou de triangles à tester (collision, ray tracing, culling), on les organise dans une structure hiérarchique :
+>
+> - **BVH** : arbre de boîtes englobantes, expliqué ci-dessus. Le standard pour le ray tracing temps réel.
+> - **Octree** : arbre où chaque nœud a **8** enfants — on subdivise un cube en 8 sous-cubes égaux, récursivement. Idéal pour partitionner uniformément l'espace 3D (utilisé par voxel cone tracing, par les colliders de Unity, par les particules SPH). En 2D, l'analogue est le *quadtree* (4 enfants).
+> - **KD-tree** (*K-Dimensional tree*) : arbre binaire qui découpe alternativement selon $x$, $y$, $z$… au plan médian des points qu'il contient. Excellent pour la recherche du plus proche voisin (*nearest neighbor*) et le ray tracing offline (PBRT).
+> - **BSP** (*Binary Space Partitioning*) : arbre binaire où chaque nœud découpe l'espace par un **plan arbitraire** (pas forcément aligné). Inventé pour Doom (1993) où il permettait au CPU de l'époque de trier les murs back-to-front en $O(n)$ au lieu de $O(n \log n)$. Toujours utilisé pour la génération de niveaux de roguelike (cf. section *Génération procédurale*).
 
 #### Path tracing — la généralisation
 
@@ -2060,8 +2102,8 @@ où $p$ est la **densité de probabilité** d'échantillonnage. Plus $N$ est gra
 Tous les rebonds **autres que la première intersection** forment l'**illumination globale**. En temps réel on l'approxime :
 
 - **Lightmaps précalculées** (Quake, 1996) — les surfaces statiques ont leur éclairage cuit dans des textures. Coût zéro à l'exécution mais inutilisable sur géométrie dynamique.
-- **Voxel cone tracing** (*VXGI*, NVIDIA 2014) — voxellise la scène, propage la lumière dans la grille.
-- **Probes irradiance** (*Light Probes*, *DDGI*) — on échantillonne l'irradiance en quelques points stratégiques et on interpole.
+- **Voxel cone tracing** (*VXGI* — *Voxel Global Illumination*, NVIDIA 2014) — on **voxellise** la scène (on la découpe en cubes 3D, les *voxels*, comme un Minecraft à très haute résolution) et on propage la lumière dans cette grille. Pour échantillonner l'irradiance d'un point, on tire un **cône** (au lieu d'un rayon fin) qui s'élargit en avançant et lit les voxels à différents niveaux de mipmap — d'où l'expression *cone tracing*. Compromis : approximatif, mais 100× plus rapide qu'un vrai ray tracing par rebond.
+- **Probes irradiance** (*Light Probes*, **DDGI** — *Dynamic Diffuse Global Illumination*, NVIDIA 2019) — on échantillonne l'irradiance en quelques points stratégiques (les *probes*) répartis dans la scène, on stocke les coefficients d'harmoniques sphériques, et chaque pixel interpole entre les probes voisines. DDGI met à jour les probes en continu via du ray tracing pour s'adapter aux changements de lumière dynamiques.
 - **Lumen** (Unreal Engine 5, 2022) — combinaison hybride de surface caching + screen tracing + (optionnel) ray tracing matériel.
 
 #### Upscaling temporel — DLSS, FSR, XeSS
@@ -2117,6 +2159,15 @@ Le **culling** et l'**occlusion** sont des techniques utilisées pour optimiser 
 
 - Le **culling** se concentre sur l'élimination des **objets entiers** qui sont en dehors du champ de vision de la caméra (*frustum culling*) ou orientés à l'opposé (*backface culling*).
 - L'**occlusion** élimine les **parties d'objets** qui sont cachées derrière d'autres objets (*occlusion culling*, *Z-buffer*, *Hi-Z*).
+
+> **Vocabulaire indispensable du pipeline.**
+>
+> - **Frustum** (lu "frustomme") : le volume tronc-de-pyramide délimité par la caméra, le *near plane* et le *far plane* — ce que la caméra "voit" effectivement. Tout ce qui est en dehors peut être culled.
+> - **Rasterization** (français : *rastérisation*, *matricage*) : étape qui convertit les triangles 3D projetés en pixels (plus précisément en *fragments*) sur la grille de l'écran. Le matériel qui s'en charge sur le GPU s'appelle le **rasterizer**.
+> - **Z-buffer** (alias **depth buffer**, tampon de profondeur) : tableau de la même taille que l'écran qui stocke, pour chaque pixel, la profondeur du fragment le plus proche déjà dessiné. Avant d'écrire un nouveau fragment, le GPU compare sa profondeur au Z-buffer ; s'il est plus loin, il est rejeté. C'est la solution standard au problème de l'**occlusion** depuis Edwin Catmull (1974).
+> - **Texel** (*texture pixel*) : un pixel d'une **texture** (par opposition à un pixel d'écran). Pour appliquer une texture sur un triangle, le sampler GPU lit un ou plusieurs texels et les combine selon le mode de filtrage (nearest, bilinear, trilinear, anisotrope).
+> - **Coordonnées homogènes** : voir la section sur la translation — astuce qui ajoute une 4ᵉ composante $w$ pour que **toutes** les transformations affines (translation incluse) s'expriment comme un produit matrice 4×4.
+> - **Coordonnées barycentriques** : voir la section *Fragment shader* — un triplet $(\alpha, \beta, \gamma)$ avec $\alpha + \beta + \gamma = 1$ qui repère un point à l'intérieur d'un triangle par son poids relatif sur les trois sommets ; c'est ce qui permet d'**interpoler** les attributs (couleur, UV, normale) à l'intérieur du triangle.
 
 ```mermaid
 graph LR
