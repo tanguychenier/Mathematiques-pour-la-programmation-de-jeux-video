@@ -557,6 +557,80 @@ Pour un mouvement plus libre (trajectoire d'une caméra, animation d'UI…), on 
 B(t) = (1-t)^3 P_0 + 3(1-t)^2 t P_1 + 3(1-t)t^2 P_2 + t^3 P_3, \quad t \in [0, 1]
 ```
 
+##### Forme générale (degré $n$) et polynômes de Bernstein
+
+Plus généralement, une courbe de Bézier de degré $n$ avec $n+1$ points de contrôle $P_0, \dots, P_n$ s'écrit comme une combinaison **affine** des points pondérés par les **polynômes de Bernstein** $B_{i,n}(t)$ :
+
+```math
+B(t) = \sum_{i=0}^{n} B_{i,n}(t)\,P_i, \qquad B_{i,n}(t) = \binom{n}{i} (1-t)^{n-i}\,t^{\,i}
+```
+
+Trois propriétés rendent les Bézier omniprésentes en infographie : ils restent **dans l'enveloppe convexe** des points de contrôle (pratique pour le culling), ils sont **invariants par transformation affine** (on peut faire pivoter les points de contrôle plutôt que recalculer la courbe) et ils s'évaluent en $O(n)$ par l'**algorithme de De Casteljau** — récursion de moyennes pondérées qui évite le calcul direct des binomiaux et reste numériquement stable.
+
+##### Élévation de degré (*degree elevation*)
+
+Un Bézier de degré $n$ peut être réécrit **exactement** comme un Bézier de degré $n+1$ en insérant un nouveau point de contrôle calculé par interpolation linéaire entre les voisins :
+
+```math
+P'_i = \frac{i}{n+1}\,P_{i-1} + \left(1 - \frac{i}{n+1}\right) P_i, \quad i = 0, 1, \dots, n+1
+```
+
+(avec la convention $P_{-1} = P_{n+1} = 0$ pour les bornes : seuls les indices intermédiaires changent réellement). Utilité pratique : harmoniser le degré de plusieurs courbes avant de les mélanger, ou ajouter de la marge de manœuvre à une courbe pour l'éditer plus finement sans changer sa trajectoire.
+
+##### Forme de Hermite — l'autre façon de penser une cubique
+
+Plutôt que de spécifier deux points et deux poignées, on peut imposer **deux points et deux tangentes**. C'est la **forme de Hermite cubique** :
+
+```math
+H(t) = (2t^3 - 3t^2 + 1)\,P_0 + (t^3 - 2t^2 + t)\,T_0 + (-2t^3 + 3t^2)\,P_1 + (t^3 - t^2)\,T_1
+```
+
+où $P_0, P_1$ sont les points et $T_0, T_1$ les vecteurs tangents. Hermite et Bézier cubiques sont **équivalents** : on passe de l'un à l'autre par un simple changement de base ($P_1^\text{Bezier} = P_0 + T_0/3$, $P_2^\text{Bezier} = P_1 - T_1/3$). Hermite est plus naturel quand on connaît la **vitesse à l'entrée et à la sortie** (interpolation de keyframes en animation, *racing-line* d'un véhicule).
+
+##### Catmull-Rom — la spline d'animation par excellence
+
+La **Catmull-Rom spline** est un cas particulier de Hermite où les tangentes sont **calculées automatiquement** à partir des voisins :
+
+```math
+T_i = \frac{P_{i+1} - P_{i-1}}{2}
+```
+
+Conséquence : la courbe **passe exactement par chaque point de contrôle** (interpolante, pas approximante comme Bézier) et reste $C^1$ continue. C'est *la* spline préférée pour les **trajectoires de caméra**, les **chemins de waypoints**, l'animation de spline-IK. La variante **Catmull-Rom centripète** (paramétrisation $t_{i+1} = t_i + \|P_{i+1} - P_i\|^{1/2}$) supprime les boucles parasites quand deux points sont très proches — c'est elle que Unreal Engine utilise par défaut pour ses *splines actor*.
+
+##### B-splines et NURBS — splines à degré arbitraire
+
+Quand on a beaucoup de points de contrôle, un Bézier unique de degré élevé devient instable et perd le contrôle local (bouger un point déforme **toute** la courbe). Les **B-splines** (*Basis splines*) résolvent ces deux problèmes en remplaçant les polynômes de Bernstein globaux par des **fonctions de base à support local** $N_{i,k}(t)$, définies par récurrence sur une suite de **nœuds** $\{t_0, t_1, \dots\}$ (relation de Cox-de Boor). Une B-spline de degré $k$ s'écrit :
+
+```math
+S(t) = \sum_{i=0}^{n} N_{i,k}(t)\,P_i
+```
+
+Les **NURBS** (*Non-Uniform Rational B-Splines*) ajoutent un **poids** $w_i$ par point de contrôle :
+
+```math
+S(t) = \frac{\sum_{i} w_i\,N_{i,k}(t)\,P_i}{\sum_{i} w_i\,N_{i,k}(t)}
+```
+
+C'est cette fraction rationnelle qui leur permet de représenter **exactement** les coniques (cercles, ellipses, paraboles) — impossible avec un polynôme classique. Les NURBS sont le standard de la **CAO industrielle** (CATIA, SolidWorks, Rhino) et de la modélisation organique (avant que la sculpture polygonale type ZBrush ne reprenne la main pour les *assets* de jeu).
+
+##### Repère de Frenet-Serret — orienter une caméra le long d'une spline
+
+Faire glisser une caméra ou un véhicule le long d'une trajectoire impose plus que la position : il faut **un repère orthonormé local** $(T, N, B)$ (tangente, normale, binormale) qui définit l'orientation à chaque instant. Le repère de **Frenet-Serret** se calcule à partir de la dérivée première et seconde de la courbe :
+
+```math
+T(t) = \frac{C'(t)}{\|C'(t)\|}, \quad
+N(t) = \frac{T'(t)}{\|T'(t)\|}, \quad
+B(t) = T(t) \times N(t)
+```
+
+Les équations de Frenet-Serret relient la dérivée du repère à la **courbure** $\kappa$ et à la **torsion** $\tau$ de la courbe :
+
+```math
+\frac{\mathrm{d}}{\mathrm{d}s}\begin{pmatrix} T \\ N \\ B \end{pmatrix} = \begin{pmatrix} 0 & \kappa & 0 \\ -\kappa & 0 & \tau \\ 0 & -\tau & 0 \end{pmatrix} \begin{pmatrix} T \\ N \\ B \end{pmatrix}
+```
+
+> **Le piège du Frenet-Serret pur**. La normale $N$ est définie par $T'$, donc elle bascule brutalement (de 180°) à chaque point d'inflexion ($T' \to 0$) — la caméra fait un *roll-flip* visible. Pour une caméra-on-rail jouable, on utilise plutôt un **repère parallèle** (*Rotation Minimizing Frame*, RMF) : on transporte la base d'un échantillon au suivant par la rotation **minimale** qui aligne $T_i$ sur $T_{i+1}$. Cette construction (méthode du *double reflection* de Wang, 2008) supprime tout twist parasite. C'est ce qu'utilisent les éditeurs de spline d'Unreal et Unity sous le capot.
+
 ### Matrices
 
 Les matrices sont des **tableaux rectangulaires** de nombres, utilisés pour effectuer des transformations linéaires sur des vecteurs.
@@ -892,6 +966,20 @@ La transformation complète d'un sommet $\mathbf{v}_{\text{local}}$ s'écrit com
 \mathbf{v}_{\text{clip}} = P \cdot V \cdot M \cdot \mathbf{v}_{\text{local}}
 ```
 
+##### Column-major vs row-major — *le* détail qui retourne tout
+
+L'écriture précédente est la convention **column-major** : un vecteur est une **colonne** de 4 lignes, et on **pré-multiplie** la matrice à gauche. C'est la convention historique des mathématiciens, d'OpenGL/GLSL, de Vulkan, de WebGPU et de la plupart des moteurs (Unity en interne, Godot, Bevy). La transformation appliquée **en premier** se trouve **à droite** du produit, comme pour les quaternions (cohérence importante).
+
+DirectX/HLSL ainsi qu'historiquement Direct3D et XNA utilisent la convention **row-major** : un vecteur est une **ligne** de 4 colonnes, et on **post-multiplie** à droite. Tout l'ordre s'inverse :
+
+```math
+\mathbf{v}_{\text{clip}} = \mathbf{v}_{\text{local}} \cdot M^{T} \cdot V^{T} \cdot P^{T}
+```
+
+Concrètement, dans un shader HLSL on écrit `mul(v, mul(M, mul(V, P)))` ou plus simplement `mul(v, MVP)` quand `MVP = M * V * P` est précalculée côté CPU avec l'ordre row-major. **Ne jamais mélanger** : c'est exactement le bug qui produit "ma scène est tournée de 90° après upload sur GPU". HLSL accepte le pragma `#pragma pack_matrix(row_major)` ou `column_major` pour fixer la convention de stockage indépendamment de la convention mathématique — toujours s'aligner avec ce que le moteur uploade.
+
+> **Règle mnémotechnique**. *Column-major + pré-multiplication* (OpenGL) **et** *row-major + post-multiplication* (DirectX) sont mathématiquement **équivalents** : la matrice column-major $M$ et la matrice row-major $M^T$ stockent les **mêmes 16 floats dans le même ordre en mémoire**. La différence est purement conventionnelle (ce qu'on appelle "ligne" et ce qu'on appelle "colonne"). Le seul vrai piège : l'**ordre de multiplication** dans le code, qui s'inverse selon la convention.
+
 [ Retour en haut de page](#table-des-matières)
 
 ---
@@ -1028,6 +1116,26 @@ C_\text{sRGB} \approx C_\text{linéaire}^{1/2.2}
 ```
 
 (la formule sRGB exacte est par morceaux, mais $2.2$ est une excellente approximation utilisée par les shaders.)
+
+##### La courbe sRGB exacte (norme IEC 61966-2-1)
+
+L'approximation $\gamma = 2{,}2$ est en fait une simplification d'une courbe **par morceaux** qui ajoute un segment **linéaire** près de zéro pour éviter une dérivée infinie en $C = 0$ (numériquement fâcheuse pour la quantification 8 bits). De **sRGB vers linéaire** :
+
+```math
+C_\text{linéaire} = \begin{cases} \dfrac{C_\text{sRGB}}{12{,}92} & \text{si } C_\text{sRGB} \le 0{,}04045 \\[6pt] \left(\dfrac{C_\text{sRGB} + 0{,}055}{1{,}055}\right)^{2{,}4} & \text{sinon} \end{cases}
+```
+
+et **dans l'autre sens** (linéaire vers sRGB, donc gamma sur écriture finale dans le framebuffer) :
+
+```math
+C_\text{sRGB} = \begin{cases} 12{,}92\,C_\text{lin} & \text{si } C_\text{lin} \le 0{,}0031308 \\[4pt] 1{,}055\,C_\text{lin}^{1/2{,}4} - 0{,}055 & \text{sinon} \end{cases}
+```
+
+L'exposant effectif global ($\approx 2{,}4$ avec offset) revient à un gamma moyen de $\approx 2{,}2$ — d'où l'approximation usuelle. Le matériel GPU (les samplers `*_SRGB` et les *render target* `RGBA8_SRGB`) implémente la version **exacte** en hardware, donc on ne paie aucun cycle pour la conversion correcte. La règle pratique reste :
+
+1. **Linéariser à la lecture** des textures *color* (albedo, ambient occlusion baked dans une texture couleur). Les textures **non-color** (normal map, roughness, metallic, masque) sont stockées et lues **linéaire brut** — leur quantifier une courbe gamma fausserait les calculs.
+2. **Tous les calculs** (éclairage, alpha-blending, post-process) en linéaire.
+3. **Gamma-correction à l'écriture** finale dans le framebuffer (ou laisser le format `*_SRGB` du *swap chain* le faire).
 
 **Pourquoi ça compte ?** Les calculs d'éclairage (Phong, Lambert, PBR — voir plus bas) **doivent** se faire en **espace linéaire**, où l'addition de deux faisceaux de lumière correspond à `C_a + C_b`. Si vous ajoutez deux couleurs sRGB sans conversion préalable, vous obtenez un résultat **délavé**, gris-jaunâtre, qui ne ressemble à rien de réaliste.
 
@@ -1180,7 +1288,34 @@ La **cinématique inverse** (*Inverse Kinematics*, IK) est une technique d'anima
 
 Cette technique est particulièrement utile pour les animations interactives — par exemple, lorsqu'un personnage saisit un objet ou marche sur un terrain irrégulier.
 
-La cinématique inverse implique généralement la résolution d'un **système d'équations non linéaires** décrivant les positions et les orientations des nœuds de l'armature. Les algorithmes les plus connus sont **CCD** (*Cyclic Coordinate Descent*) et **FABRIK** (*Forward And Backward Reaching Inverse Kinematics*).
+La cinématique inverse implique généralement la résolution d'un **système d'équations non linéaires** décrivant les positions et les orientations des nœuds de l'armature. Trois grandes familles d'algorithmes existent :
+
+#### Méthodes basées sur la Jacobienne
+
+Soit $\boldsymbol{\theta} = (\theta_1, \dots, \theta_n)$ le vecteur des angles articulaires et $\mathbf{e}(\boldsymbol{\theta})$ la position de l'effecteur (fonction non-linéaire). On cherche $\boldsymbol{\theta}^\star$ tel que $\mathbf{e}(\boldsymbol{\theta}^\star)$ atteigne la cible $\mathbf{e}_\text{cible}$. La **Jacobienne** $J = \partial \mathbf{e} / \partial \boldsymbol{\theta}$ relie une petite variation des angles à une petite variation de l'effecteur : $\Delta \mathbf{e} \approx J\,\Delta \boldsymbol{\theta}$. On itère :
+
+```math
+\Delta \boldsymbol{\theta} = J^{+}\,(\mathbf{e}_\text{cible} - \mathbf{e}(\boldsymbol{\theta}))
+```
+
+où $J^{+}$ est la **pseudo-inverse** de Moore-Penrose. Trois variantes :
+
+- **Jacobienne transposée** : on remplace $J^{+}$ par $J^{T}$. Très peu coûteux, mais convergence lente et choix de $\alpha$ délicat. Bon pour des chaînes de 2-3 articulations.
+- **Pseudo-inverse** ($J^{+} = J^{T}(JJ^{T})^{-1}$) : converge en peu d'itérations mais explose près des **singularités** (coude tendu, par exemple) où $JJ^{T}$ devient singulière.
+- **Damped Least Squares** (DLS, Levenberg-Marquardt) : $\Delta \boldsymbol{\theta} = J^{T}(JJ^{T} + \lambda^2 I)^{-1}\,(\mathbf{e}_\text{cible} - \mathbf{e})$. Le terme d'amortissement $\lambda$ stabilise au prix d'un peu de précision. C'est la méthode-mère de toutes les implémentations IK robustes (Maya, Blender HIK, Unity FinalIK).
+
+#### CCD — Cyclic Coordinate Descent
+
+Itérativement, on parcourt la chaîne de l'effecteur vers la racine et, pour chaque articulation, on calcule **la rotation pure** qui aligne le segment "articulation → effecteur" avec "articulation → cible". Trivial à implémenter (10 lignes), gratuit en flops, ne plante jamais en singularité, mais produit parfois des poses peu naturelles (l'épaule fait tout le travail avant le coude). Standard dans les jeux jusqu'aux années 2010, encore présent comme *fallback*.
+
+#### FABRIK — Forward And Backward Reaching Inverse Kinematics
+
+Aristidou & Lasenby, 2011. On traite la chaîne comme un ensemble de longueurs **rigides** plutôt que de tordre des angles :
+
+1. **Forward pass** : on déplace l'effecteur sur la cible, puis on fait remonter chaque articulation vers la racine en préservant les longueurs des os.
+2. **Backward pass** : on remet la racine à sa position initiale et on redescend la chaîne en préservant les longueurs.
+
+On itère jusqu'à convergence (typiquement 5-10 passes pour une chaîne de 7 os). Avantages : pas de Jacobienne, pas de singularité, comportement visuellement très naturel, gère les **contraintes d'angle** par projection. C'est l'algorithme par défaut d'Unreal (`Anim Graph FABRIK`) et de la plupart des middleware IK modernes.
 
 [ Retour en haut de page](#table-des-matières)
 
@@ -1218,9 +1353,37 @@ Position et vitesse sont ensuite intégrées dans le temps. La méthode la plus 
 
 où $\Delta t$ est le pas de temps. Euler explicite gagne en simplicité ce qu'il perd en stabilité : sur de longues simulations, il introduit une dérive énergétique (les ressorts gagnent de l'énergie, les orbites s'écartent). On lui préfère :
 
-- **Euler semi-implicite** (*symplectic Euler*) : on met à jour la vitesse **avant** la position (`v += a*dt; p += v*dt`). Conserve l'énergie sur les systèmes oscillants. **Le défaut par défaut** dans la plupart des moteurs de jeu.
-- **Verlet** (notamment *velocity Verlet*) : exact à l'ordre 2, conserve très bien l'énergie. Utilisé par les moteurs de cloth et de soft-body.
-- **Runge-Kutta 4 (RK4)** : très précis mais coûteux ; utilisé en simulation aérospatiale ou physique éducative, rarement dans les jeux temps réel.
+- **Euler semi-implicite** (*symplectic Euler*) : on met à jour la vitesse **avant** la position. Conserve l'énergie sur les systèmes oscillants (au sens d'*intégrateur symplectique* : pas exactement énergie-préservant, mais l'erreur d'énergie reste bornée — pas de dérive séculaire). **Le défaut par défaut** dans la plupart des moteurs de jeu.
+
+```math
+\mathbf{v}_{t+1} = \mathbf{v}_t + \mathbf{a}(\mathbf{p}_t)\,\Delta t, \qquad \mathbf{p}_{t+1} = \mathbf{p}_t + \mathbf{v}_{t+1}\,\Delta t
+```
+
+- **Verlet de position** (Verlet, 1967) : on n'entrepose pas la vitesse, on la déduit des deux dernières positions. Élégant pour les systèmes contraints (*Position-Based Dynamics*, ragdolls de Hitman) :
+
+```math
+\mathbf{p}_{t+1} = 2\,\mathbf{p}_t - \mathbf{p}_{t-1} + \mathbf{a}(\mathbf{p}_t)\,\Delta t^2
+```
+
+- **Velocity Verlet** : variante qui maintient explicitement la vitesse, exacte à l'ordre 2 sur la position et l'ordre 1 sur la vitesse, conserve très bien l'énergie sur les systèmes oscillants. Utilisée par les moteurs de cloth, de soft-body et de simulation moléculaire.
+
+```math
+\mathbf{p}_{t+1} = \mathbf{p}_t + \mathbf{v}_t\,\Delta t + \tfrac{1}{2}\,\mathbf{a}(\mathbf{p}_t)\,\Delta t^2, \qquad \mathbf{v}_{t+1} = \mathbf{v}_t + \tfrac{1}{2}\big[\mathbf{a}(\mathbf{p}_t) + \mathbf{a}(\mathbf{p}_{t+1})\big]\,\Delta t
+```
+
+- **Runge-Kutta 4 (RK4)** : très précis (erreur en $O(\Delta t^5)$) mais coûteux — quatre évaluations de la dérivée par pas — et **non symplectique**, donc dérive énergétique sur les longues simulations malgré sa précision. Utilisé en simulation aérospatiale ou physique éducative, rarement dans les jeux temps réel. Pour un système $\dot{\mathbf{y}} = f(\mathbf{y})$ :
+
+```math
+\begin{aligned}
+\mathbf{k}_1 &= f(\mathbf{y}_t) \\
+\mathbf{k}_2 &= f(\mathbf{y}_t + \tfrac{\Delta t}{2}\,\mathbf{k}_1) \\
+\mathbf{k}_3 &= f(\mathbf{y}_t + \tfrac{\Delta t}{2}\,\mathbf{k}_2) \\
+\mathbf{k}_4 &= f(\mathbf{y}_t + \Delta t\,\mathbf{k}_3) \\
+\mathbf{y}_{t+1} &= \mathbf{y}_t + \tfrac{\Delta t}{6}\,(\mathbf{k}_1 + 2\,\mathbf{k}_2 + 2\,\mathbf{k}_3 + \mathbf{k}_4)
+\end{aligned}
+```
+
+> **L'arbitrage du game-dev**. Symplectique > précision absolue pour 99 % des jeux. Un canon orbital qui dérive de 0,1 % d'énergie par seconde se voit en 30 secondes ; une trajectoire d'obus qui s'écarte de 1 cm sur 100 m, personne ne le remarque. C'est pour ça que Box2D, Bullet, PhysX par défaut, Havok et tous les moteurs de cloth utilisent du semi-implicite ou du Verlet — pas du RK4.
 
 #### Pas de simulation fixe ≠ pas de frame
 
@@ -1398,9 +1561,17 @@ où :
 
 > **Heuristique admissible** : qui ne **surestime jamais** le coût réel restant. Formellement : $h(n) \le h^\ast(n)$ pour tout $n$, où $h^\ast(n)$ est le coût optimal réel entre $n$ et le but.
 
-**Théorème** : si $h$ est admissible, A\* trouve **toujours** le chemin optimal.
+**Théorème** : si $h$ est admissible, A\* (avec *tree-search* ou avec une liste fermée et $h$ **consistante**, c'est-à-dire vérifiant $h(n) \le c(n, n') + h(n')$ pour toute arête) trouve **toujours** le chemin optimal.
 
-*Idée de preuve* : supposons par l'absurde qu'A\* renvoie un chemin sous-optimal. Alors il existe au moins un nœud $n$ sur le chemin optimal qui est dans la frontière non explorée au moment où A\* termine. Pour ce $n$, on a $f(n) = g(n) + h(n) \le g(n) + h^\ast(n) = \text{coût optimal}$, donc $f(n) \le f(\text{but trouvé})$, ce qui contredit le fait qu'A\* a choisi le but trouvé en premier. ∎
+*Idée de preuve*. Supposons par l'absurde qu'A\* termine en renvoyant un nœud-but $G$ sous-optimal, c'est-à-dire avec $g(G) > C^\ast$ où $C^\ast$ est le coût du chemin optimal. À cet instant, considérons un chemin optimal de la racine au but ; soit $n^\ast$ le **premier** nœud de ce chemin qui n'a pas encore été *expand* (il existe : sinon le chemin optimal aurait déjà été reconstitué et A\* aurait renvoyé $C^\ast$). Comme $n^\ast$ est sur le chemin optimal, $g(n^\ast) + h^\ast(n^\ast) = C^\ast$. Par admissibilité, $h(n^\ast) \le h^\ast(n^\ast)$, donc :
+
+```math
+f(n^\ast) = g(n^\ast) + h(n^\ast) \le g(n^\ast) + h^\ast(n^\ast) = C^\ast < g(G) = f(G)
+```
+
+(la dernière égalité utilise $h(G) = 0$ pour un nœud-but). Or A\* extrait toujours de la file le nœud de **plus petit** $f$. Comme $n^\ast$ est dans la file ouverte avec $f(n^\ast) < f(G)$, A\* aurait dû expand $n^\ast$ avant de tester $G$ — contradiction. ∎
+
+> **Note technique**. Si $h$ est seulement admissible (pas consistante), la preuve ci-dessus marche pour A\* en *tree-search* (sans liste fermée) ou exige de ré-ouvrir un nœud quand on découvre un meilleur $g$. La consistance — plus forte que l'admissibilité — garantit qu'aucun nœud n'a besoin d'être ré-ouvert (Hart, Nilsson, Raphael, 1968). Toutes les heuristiques classiques sur grille (Manhattan, Chebyshev, Octile, Euclidienne) sont **consistantes** dès que les coûts d'arête respectent l'inégalité triangulaire — ce qui est quasi toujours le cas en pratique.
 
 **Heuristiques classiques sur grille** :
 
@@ -1521,6 +1692,8 @@ S(t) = (1 - \alpha)\,S_0 + \alpha\,S_1
 ```
 
 où $S_0, S_1$ sont les deux snapshots qui encadrent le temps $t$. La règle pratique est de retarder de **2× la période du tick rate** : sur un serveur 64 Hz, on rend les autres joueurs avec 30 ms de retard. *Counter-Strike*, *Valorant*, *Overwatch* font tous ça.
+
+> **Pourquoi exactement 2× la période ?** Soit $T = 1/\text{tickRate}$ la période entre deux snapshots et $J$ la *jitter* réseau (variation du délai d'arrivée). Pour qu'à tout instant on dispose d'au moins **deux** snapshots autour du temps de rendu (l'un derrière, l'un devant) il faut un *buffer* d'au moins $T$ ; pour absorber la *jitter* sans interruption il faut **un autre** $T$ de marge. Total : $2T$. Avec moins, un paquet retardé fait dégénérer en **extrapolation** (deviner le futur), ce qui produit le tristement célèbre *rubber-banding*. Avec plus, on accumule un *input lag* visible. Pour les jeux compétitifs très tendus (*VALORANT*, *Counter-Strike 2*), on baisse à $\sim 1{,}5\,T$ et on assume une perte occasionnelle au profit de la réactivité.
 
 ##### 2. Client-side prediction (côté client, pour soi-même)
 
@@ -1716,17 +1889,41 @@ où :
 - $\boldsymbol{\omega}_i \cdot \mathbf{n}$ est le **terme de Lambert** : un faisceau qui frappe la surface à 45° apporte moins d'énergie au m² qu'un faisceau perpendiculaire.
 - $\Omega$ est l'hémisphère au-dessus de la surface.
 
-L'intégrale est insolvable analytiquement → on l'approxime. Les jeux temps réel utilisent une **BRDF Cook-Torrance microfacets** :
+L'intégrale est insolvable analytiquement → on l'approxime. Les jeux temps réel utilisent une **BRDF Cook-Torrance microfacets** dont la forme canonique met en évidence le rôle des deux cosinus au dénominateur :
 
 ```math
-f_r = \underbrace{\frac{c_\text{diff}}{\pi}}_\text{Lambertien} + \underbrace{\frac{D \cdot F \cdot G}{4\,(\boldsymbol{\omega}_o \cdot \mathbf{n})\,(\boldsymbol{\omega}_i \cdot \mathbf{n})}}_\text{Spéculaire microfacets}
+f_r(\boldsymbol{\omega}_i, \boldsymbol{\omega}_o) = \underbrace{\frac{c_\text{diff}}{\pi}}_\text{Lambertien} + \underbrace{\frac{D(\mathbf{h}) \cdot F(\boldsymbol{\omega}_o, \mathbf{h}) \cdot G(\boldsymbol{\omega}_i, \boldsymbol{\omega}_o)}{4\,(\mathbf{n}\cdot\boldsymbol{\omega}_i)\,(\mathbf{n}\cdot\boldsymbol{\omega}_o)}}_\text{Spéculaire microfacets}
+```
+
+où $\mathbf{h} = \dfrac{\boldsymbol{\omega}_i + \boldsymbol{\omega}_o}{\|\boldsymbol{\omega}_i + \boldsymbol{\omega}_o\|}$ est le **half-vector** (vecteur médian). Les deux cosinus $\mathbf{n}\cdot\boldsymbol{\omega}_i$ et $\mathbf{n}\cdot\boldsymbol{\omega}_o$ doivent **toujours** être pris en valeur absolue (ou clampés à $[\epsilon, 1]$) — un cosinus négatif signifie qu'on regarde le dos de la surface, et un cosinus proche de $0$ produit une singularité que le terme $G$ doit annuler. Les formules explicites (le "secret de cuisine" du PBR moderne) :
+
+```math
+D_\text{GGX}(\mathbf{h}) = \frac{\alpha^2}{\pi\,\big[(\mathbf{n}\cdot\mathbf{h})^2(\alpha^2 - 1) + 1\big]^2}, \qquad \alpha = \text{roughness}^2
+```
+
+```math
+F_\text{Schlick}(\boldsymbol{\omega}_o, \mathbf{h}) = F_0 + (1 - F_0)\,(1 - \mathbf{h}\cdot\boldsymbol{\omega}_o)^5
+```
+
+```math
+G_\text{Smith}(\boldsymbol{\omega}_i, \boldsymbol{\omega}_o) = G_1(\boldsymbol{\omega}_i)\,G_1(\boldsymbol{\omega}_o), \qquad G_1(\boldsymbol{\omega}) = \frac{\mathbf{n}\cdot\boldsymbol{\omega}}{(\mathbf{n}\cdot\boldsymbol{\omega})(1 - k) + k}, \quad k = \frac{(\text{roughness} + 1)^2}{8}
 ```
 
 avec :
 
-- **D — distribution des normales** (GGX/Trowbridge-Reitz, le standard depuis ~2014) : décrit la "rugosité" perceptuelle de la surface.
-- **F — Fresnel** (Schlick) : plus on regarde une surface en rasant, plus elle réfléchit comme un miroir. C'est ce qui fait briller le bord d'une bouteille.
-- **G — masquage / ombrage** (Smith) : sur une surface très rugueuse, certaines microfacettes sont cachées par d'autres.
+- **D — distribution des normales** (GGX/Trowbridge-Reitz, le standard depuis ~2014) : densité statistique des microfacettes alignées avec $\mathbf{h}$. La queue lourde de GGX (cf. ci-dessous) reproduit fidèlement les *highlights* étendues d'un métal brossé.
+- **F — Fresnel** (Schlick) : approximation rationnelle des équations de Fresnel exactes. $F_0$ est la **réflectance à incidence normale**, dépendant du matériau ($\approx 0{,}04$ pour la plupart des diélectriques, $= $ couleur d'albedo pour les métaux).
+- **G — masquage / ombrage** (Smith, formulation Schlick-GGX de Karis pour Unreal 4) : sur une surface très rugueuse, certaines microfacettes sont cachées par leurs voisines. La factorisation de Smith $G = G_1(\omega_i)\,G_1(\omega_o)$ découple masquage et ombrage. Le paramètre $k$ ci-dessus est l'approximation directe (analytique) de la version *correlated* utilisée en temps réel.
+
+##### GGX vs Beckmann vs Trowbridge-Reitz : trois NDF, une histoire
+
+Le terme $D$ a connu trois générations chez les chercheurs et chez les artistes :
+
+- **Beckmann** (1963) : la NDF d'origine, dérivée d'un modèle physique gaussien des hauteurs de microfacettes. Décroissance exponentielle, donc *highlight* trop "serré" et coupure trop nette pour un métal poli. Elle reste utilisée en simulation optique offline.
+- **Trowbridge-Reitz** (1975) et sa réincarnation **GGX** (Walter et al., 2007) : queue plus lourde, *highlights* plus naturelles. Disney l'a adoptée dans son fameux *principled BRDF* (SIGGRAPH 2012), suivi par Unreal 4 (Karis, 2013) — depuis, c'est le standard de fait dans tous les engines.
+- **GGX-anisotropique** : variante à deux paramètres de rugosité ($\alpha_x, \alpha_y$) qui modélise le cuir brossé, le velours, les disques métalliques rayés. Coût : un produit scalaire de plus, pour un gain visuel énorme sur un matériau "horloger".
+
+L'ironie historique : Trowbridge-Reitz et GGX sont **mathématiquement identiques** — Walter & co. ont redécouvert la NDF de 1975 sans le savoir, l'ont nommée d'après les initiales internes "Generalized-Trowbridge-Reitz" (selon une rumeur persistante chez Pixar) puis l'ont popularisée. C'est pour ça qu'on voit les deux noms accolés dans la littérature.
 
  **Paramètres PBR exposés à l'artiste.** Ce qu'on lui demande de peindre dans des textures :
 
@@ -1751,11 +1948,75 @@ où $V \in \{0, 1\}$ est la **visibilité** dans la direction $\boldsymbol{\omeg
 - **HBAO** (*Horizon-Based*, NVIDIA 2008) : raffinement angulaire, plus précis.
 - **GTAO** (*Ground-Truth*, 2016) : référence actuelle, presque indistinguable d'un rendu offline.
 
+#### Harmoniques sphériques — l'éclairage ambiant compressé
+
+> **Harmoniques sphériques (SH)** : famille de fonctions de base définies sur la sphère unité, analogues à la série de Fourier mais en 2 angles ($\theta, \varphi$) au lieu d'un seul. Elles permettent de **projeter** une fonction quelconque sur la sphère — typiquement la lumière incidente ambiante — sur un nombre fini de coefficients, puis de reconstruire une approximation lisse à partir de ces coefficients.
+
+Toute fonction $f : S^2 \to \mathbb{R}$ se décompose en :
+
+```math
+f(\theta, \varphi) = \sum_{\ell = 0}^{\infty} \sum_{m = -\ell}^{\ell} c_\ell^m\,Y_\ell^m(\theta, \varphi)
+```
+
+où les $Y_\ell^m$ sont les **harmoniques sphériques** (orthonormées sur la sphère). En infographie temps réel, on tronque à $\ell \le 2$ — il ne reste alors que **9 coefficients par canal RGB** (donc 27 floats) qui suffisent à reproduire l'éclairage ambiant diffus avec une erreur $\le 1\%$ pour des surfaces lambertiennes (Ramamoorthi & Hanrahan, 2001). Concrètement, dans une *probe* de Unity ou Unreal, ces 27 floats encodent **toute** la lumière ambiante d'une cubemap haute résolution.
+
+L'évaluation de l'**irradiance** $E(\mathbf{n})$ (lumière reçue par une surface de normale $\mathbf{n}$) se réduit alors à un **produit scalaire 9D** dans le shader — une poignée de cycles, à comparer à l'échantillonnage d'une cubemap pour chaque fragment :
+
+```math
+E(\mathbf{n}) \approx \sum_{\ell = 0}^{2} \sum_{m = -\ell}^{\ell} c_\ell^m\,Y_\ell^m(\mathbf{n})
+```
+
+C'est la base des **Light Probes** d'Unity, des **Irradiance Volumes** d'Unreal, des **Lightmaps SH** de Frostbite, et même de la skybox dynamique d'AAA modernes (CoD: Modern Warfare, Spider-Man PS5).
+
+#### Échantillonnage par importance — comment Monte-Carlo ne diverge pas
+
+L'estimateur Monte-Carlo de l'équation de rendu donné plus haut converge à $1/\sqrt{N}$, ce qui exige des milliers d'échantillons par pixel pour un résultat propre. La technique-clé pour réduire massivement la **variance** est l'**importance sampling** : tirer les directions de rebond $\boldsymbol{\omega}_i$ avec une distribution $p(\boldsymbol{\omega}_i)$ **proportionnelle à l'intégrande** plutôt qu'uniformément sur la sphère.
+
+```math
+L_o \approx \frac{1}{N} \sum_{k=1}^{N} \frac{f_r(\boldsymbol{\omega}_i^{(k)}, \boldsymbol{\omega}_o)\,L_i(\boldsymbol{\omega}_i^{(k)})\,(\boldsymbol{\omega}_i^{(k)} \cdot \mathbf{n})}{p(\boldsymbol{\omega}_i^{(k)})}
+```
+
+Trois choix usuels de PDF, chacun adapté à un terme :
+
+- **Cosine-weighted hemisphere** : $p(\boldsymbol{\omega}) = \cos\theta / \pi$. Optimale pour un terme lambertien $f_r = \rho/\pi$ : la pondération $\cos\theta$ disparaît exactement, donc tous les échantillons contribuent uniformément. Tirage par disque concentrique (Shirley, 1997) en deux uniformes $(u_1, u_2) \in [0,1]^2$.
+- **GGX importance sampling** : tirer le half-vector $\mathbf{h}$ selon la NDF $D(\mathbf{h})$ puis reflechir $\boldsymbol{\omega}_o$ par $\mathbf{h}$. Indispensable pour les *highlights* spéculaires fines — sans ça, un matériau roughness $0{,}05$ demande $10\,000$ samples uniformes vs 8-16 samples GGX.
+- **Multiple Importance Sampling (MIS)** : combine deux PDFs (souvent BRDF + lumière) en pondérant par la *balance heuristic* de Veach (1995). C'est ce qui permet à un path tracer moderne de gérer correctement à la fois les surfaces très spéculaires *et* les sources de lumière étendues, sans firefly.
+
+> **Pourquoi DLSS et FSR convergent si vite ?** Les denoisers neuronaux des path tracers temps réel (Cyberpunk RTX, Quake II RTX) opèrent sur des images de 1-2 sample/pixel **importance-sampled**. Sans importance sampling, ces 1-2 samples seraient trop bruités même pour un réseau ; c'est l'union des deux qui fait le miracle.
+
+#### Anti-aliasing — la guerre contre l'escalier
+
+L'**aliasing** (en français : *crénelage*) apparaît dès qu'on échantillonne un signal continu (un triangle, une texture) à une fréquence inférieure à sa **fréquence de Nyquist** : $f_\text{sample} \ge 2\,f_\text{signal}$. Un triangle avec une arête fine ou une texture haute fréquence produit alors des marches d'escalier, du *moiré*, du *crawling* en mouvement. Quatre familles de techniques :
+
+- **SSAA** (*Super-Sampling Anti-Aliasing*) — la force brute. On rend la scène à $k\times$ la résolution puis on *downsample* par moyenne. Coût mémoire et calcul $\times k^2$. Référence absolue en qualité, jamais utilisé en jeu temps réel sauf en mode "screenshot".
+- **MSAA** (*Multi-Sample AA*) — version optimisée. On évalue le **fragment shader une seule fois par pixel** mais on stocke $k$ échantillons de **profondeur** et de **couverture** (typiquement 2× ou 4×). Très efficace pour les arêtes de polygones, **n'aide pas** sur les textures ni sur les *shader aliasing* (*highlights* spéculaires fines, alpha-test). Dépend du *deferred shading* moderne où il devient compliqué et coûteux.
+
+```math
+C_\text{pixel} = \frac{1}{k} \sum_{j=1}^{k} \mathbb{1}[\text{sample}_j \text{ couvert}] \cdot C_\text{shader}
+```
+
+- **FXAA** (*Fast Approximate AA*, Lottes/NVIDIA, 2009) — *post-process* sur l'image finale. Détecte les contours par opérateur de **luma gradient** puis flou directionnel le long de l'arête. Très bon marché ($\sim 0{,}5$ ms en 1080p), résultat un peu flou, **gère tous les types d'aliasing** (textures incluses).
+- **TAA** (*Temporal AA*) — le standard actuel. Combine l'image courante avec les images précédentes **reprojetées** via les *motion vectors*, en accumulant un sous-échantillon différent à chaque frame. Mathématiquement, c'est exactement la formule de reprojection temporelle vue dans la section DLSS :
+
+```math
+C_t(\mathbf{p}) = \alpha\,C_t^\text{rendu}(\mathbf{p}) + (1 - \alpha)\,C_{t-1}(\mathbf{p} + \mathbf{v}_\text{motion})
+```
+
+Avec $\alpha \approx 0{,}1$, après ~10 frames un pixel statique a vu 10 sous-échantillons différents → équivalent à un SSAA 10×, gratuitement. Le défaut classique : **ghosting** des objets qui se découvrent (une couleur "fantôme" reste collée derrière), mitigé par le *neighborhood clamping* (Karis, 2014) qui borne la couleur historique aux extrêmes du voisinage spatial. **DLAA** et **TSR** (Unreal 5) sont des évolutions modernes de TAA.
+
 #### Tessellation et displacement mapping
 
 > **Tessellation** : subdiviser dynamiquement un maillage en plus de triangles à l'approche du spectateur. **Displacement** : déplacer les nouveaux sommets selon une *heightmap* (texture en niveaux de gris) pour créer du vrai relief géométrique (et pas juste une normal map qui ment au rasterizer).
 
-Combinés, ils créent un terrain ou une muraille qui semble découpée au burin, sans payer le coût mémoire d'un mesh aussi détaillé. Le pipeline GPU (DX11+, OpenGL 4.0+) fournit deux étages dédiés : **Hull Shader** + **Domain Shader**.
+Mathématiquement, la subdivision se fait dans l'**espace barycentrique** d'un patch (triangle ou quad). Pour chaque triangle d'entrée de sommets $V_0, V_1, V_2$ et un facteur de tessellation $T$, le *Domain Shader* est invoqué avec un triplet barycentrique $(u, v, w)$ avec $u + v + w = 1$, et reconstruit le sommet :
+
+```math
+P(u, v, w) = u\,V_0 + v\,V_1 + w\,V_2 + h(u, v, w)\,\mathbf{n}(u, v, w)
+```
+
+où $h$ est lue dans la *heightmap* et $\mathbf{n}$ est la normale interpolée. C'est l'extension naturelle des coordonnées barycentriques (déjà utilisées par le fragment shader pour interpoler les attributs) à un échantillonnage **dense** du patch.
+
+Combinés, tessellation et displacement créent un terrain ou une muraille qui semble découpée au burin, sans payer le coût mémoire d'un mesh aussi détaillé. Le pipeline GPU (DX11+, OpenGL 4.0+) fournit deux étages dédiés : **Hull Shader** + **Domain Shader**. Les *Mesh Shaders* (DX12 Ultimate, 2020) étendent encore le concept en remplaçant tout le front-end par un programme arbitraire — plus de vertex/hull/domain, juste un shader qui crache des *meshlets*.
 
 #### Ray tracing — le tracé de rayons
 
@@ -1769,7 +2030,20 @@ Pour un rayon $R(t) = \mathbf{O} + t\,\mathbf{D}$ et une sphère $\|\mathbf{P} -
 t^2(\mathbf{D}\cdot\mathbf{D}) + 2t\,\mathbf{D}\cdot(\mathbf{O}-\mathbf{C}) + \|\mathbf{O}-\mathbf{C}\|^2 - r^2 = 0
 ```
 
-Pour des triangles, on utilise l'algorithme **Möller-Trumbore** (1997) qui donne directement les coordonnées barycentriques et la profondeur en quelques produits vectoriels. Les GPUs RTX/RDNA2+ embarquent une unité matérielle (**RT cores**) qui accélère ce test des centaines de fois.
+Pour des triangles, on utilise l'algorithme **Möller-Trumbore** (1997) qui donne directement les coordonnées barycentriques et la profondeur sans construire explicitement le plan du triangle. Soit un rayon $R(t) = \mathbf{O} + t\,\mathbf{D}$ et un triangle $(V_0, V_1, V_2)$. On pose $\mathbf{e}_1 = V_1 - V_0$, $\mathbf{e}_2 = V_2 - V_0$ et on résout :
+
+```math
+\mathbf{O} + t\,\mathbf{D} = V_0 + u\,\mathbf{e}_1 + v\,\mathbf{e}_2 \quad\Leftrightarrow\quad
+\begin{pmatrix} -\mathbf{D} & \mathbf{e}_1 & \mathbf{e}_2 \end{pmatrix}\begin{pmatrix} t \\ u \\ v \end{pmatrix} = \mathbf{O} - V_0
+```
+
+La règle de Cramer combinée à l'identité du **produit mixte** $(\mathbf{a} \times \mathbf{b}) \cdot \mathbf{c} = \det(\mathbf{a}, \mathbf{b}, \mathbf{c})$ donne, en posant $\mathbf{p} = \mathbf{D} \times \mathbf{e}_2$, $\mathbf{T} = \mathbf{O} - V_0$, $\mathbf{q} = \mathbf{T} \times \mathbf{e}_1$ :
+
+```math
+t = \frac{\mathbf{q} \cdot \mathbf{e}_2}{\mathbf{p} \cdot \mathbf{e}_1}, \qquad u = \frac{\mathbf{p} \cdot \mathbf{T}}{\mathbf{p} \cdot \mathbf{e}_1}, \qquad v = \frac{\mathbf{q} \cdot \mathbf{D}}{\mathbf{p} \cdot \mathbf{e}_1}
+```
+
+Le triangle est touché si $\mathbf{p} \cdot \mathbf{e}_1 \ne 0$ (rayon non parallèle), $u \ge 0$, $v \ge 0$, $u + v \le 1$ et $t > t_\text{min}$. Coût : 5 produits scalaires, 2 produits vectoriels, 1 division — soit ~30 flops par test. Les GPUs RTX/RDNA2+ embarquent une unité matérielle (**RT cores**) qui accélère ce test des centaines de fois et le combine avec une descente dans la BVH (*Bounding Volume Hierarchy*).
 
 #### Path tracing — la généralisation
 
@@ -2066,6 +2340,59 @@ C_f(x, y) = \frac{1}{2\pi\sigma^2} \sum_{i=-k}^{k} \sum_{j=-k}^{k} w(i, j) \cdot
 ```
 
 où $\sigma$ est l'écart-type de la distribution gaussienne, $k$ est la taille du filtre et $w(i, j)$ est la pondération de chaque fragment voisin $(i, j)$.
+
+##### Exemple complet — un fragment shader Phong en GLSL
+
+Pour rendre concret tout ce qui précède, voici un fragment shader **GLSL 330** qui assemble interpolation barycentrique (implicite, fournie par le rasterizer), texturage, et éclairage de Blinn-Phong avec atténuation distance — l'équivalent moderne du *fixed-function pipeline* de OpenGL 1.x, mais codé à la main :
+
+```glsl
+#version 330 core
+
+in vec3 vWorldPos;     // position du fragment, espace monde
+in vec3 vNormal;       // normale interpolée
+in vec2 vUV;           // coordonnées de texture interpolées
+out vec4 oColor;
+
+uniform sampler2D uAlbedo;       // texture color, échantillonnée en sRGB → linéaire par le sampler
+uniform vec3      uLightPos;     // position de la lumière (espace monde)
+uniform vec3      uLightColor;   // intensité lumineuse linéaire (peut être > 1.0 en HDR)
+uniform vec3      uViewPos;      // position de la caméra
+uniform float     uShininess;    // exposant de brillance (Blinn-Phong)
+
+void main() {
+ // Lecture de l'albedo (déjà linéarisé par le format SRGB du sampler)
+ vec3 albedo = texture(uAlbedo, vUV).rgb;
+
+ // Vecteurs unitaires nécessaires
+ vec3 N = normalize(vNormal);
+ vec3 L = uLightPos - vWorldPos;
+ float distance = length(L);
+ L /= distance;                                  // direction lumière normalisée
+ vec3 V = normalize(uViewPos - vWorldPos);       // direction caméra
+ vec3 H = normalize(L + V);                      // half-vector (Blinn)
+
+ // Atténuation physique en 1/r^2 (lumière ponctuelle)
+ float attenuation = 1.0 / (distance * distance);
+
+ // Composantes de Blinn-Phong
+ float ambient  = 0.03;
+ float diffuse  = max(dot(N, L), 0.0);
+ float specular = pow(max(dot(N, H), 0.0), uShininess);
+
+ vec3 color = albedo * (ambient + diffuse * uLightColor * attenuation)
+            + uLightColor * specular * attenuation;
+
+ // Pas de gamma manuel ici : le framebuffer est en RGBA8_SRGB,
+ // le GPU appliquera la conversion linéaire → sRGB en hardware à l'écriture.
+ oColor = vec4(color, 1.0);
+}
+```
+
+Trois choses à noter pour quiconque vient du *fixed-function pipeline* (OpenGL 1.x à 2.1) ou de DirectX 9 :
+
+1. Tout passe par des **matrices et uniforms explicites** côté CPU. Plus de `glLoadMatrix`, plus de `glLight` — c'était le règne du couple `glBegin`/`glEnd` qu'on a définitivement abandonné avec OpenGL 3.0+ Core Profile en 2008.
+2. La **pipeline programmable** est obligatoire : aucun rendu n'arrive à l'écran sans au moins un vertex shader **et** un fragment shader compilés et liés en *program object*. Les *render states* (alpha test, fog, lighting model) qui étaient des appels d'API en DX9 sont aujourd'hui des `if` ou des branches statiques dans le shader.
+3. Les **conversions sRGB sont implicites** quand on déclare correctement les formats des textures et du framebuffer. Tout shader qui contient un `pow(color, 2.2)` à la lecture ou à l'écriture est presque toujours un signe de format mal déclaré côté CPU.
 
 ##### 7. Optimisations
 
