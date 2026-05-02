@@ -227,7 +227,7 @@ Au-delà de quelques kilomètres en `float`, la solution canonique est de **rece
 Un jeu vidéo a besoin d'aléa **partout** — placement d'arbres dans une forêt, dégâts critiques, mélange du paquet de cartes, génération de niveau infini, bruit pour les textures, comportement d'IA. Mais cet "aléa" doit souvent être **reproductible** :
 
 - **Replay** : rejouer une partie enregistrée doit reproduire les mêmes événements.
-- **Multijoueur lockstep** : *Age of Empires*, *StarCraft*, *Factorio* synchronisent les joueurs en n'envoyant que les inputs ; tout le reste (collisions, IA, RNG) doit donner le même résultat sur chaque machine.
+- **Multijoueur lockstep** : *Age of Empires*, *StarCraft*, *Factorio* synchronisent les joueurs en n'envoyant que les inputs ; tout le reste (collisions, IA, RNG) doit donner le même résultat sur chaque machine. (*Lockstep* signifie « pas verrouillé » : tous les clients avancent simulation et inputs au même rythme et sont obligés de rester bit-pour-bit identiques. Détails dans le chapitre Réseau.)
 - **Génération procédurale** : *Minecraft*, *Terraria*, *No Man's Sky* doivent recréer le même monde à partir d'une **seed** (graine) donnée.
 
 D'où l'usage de **PRNG** (pseudo-random number generators) : des générateurs déterministes qui, à partir d'un état initial, produisent une séquence "qui ressemble à de l'aléatoire".
@@ -297,11 +297,11 @@ C'est l'idée derrière le placement d'arbres dans *Minecraft* : `Hash2D(blockX,
 
 #### Distributions au-delà de l'uniforme
 
-Un PRNG donne des nombres uniformes dans $[0, 1[$. Pour autre chose :
+Un PRNG donne des nombres uniformes dans $[0, 1[$ (intervalle fermé en 0, ouvert en 1 : 0 inclus, 1 exclu). Pour autre chose :
 
-- **Loi normale** (cloches autour d'une moyenne) : Box-Muller. Si $u_1, u_2$ sont uniformes, $z = \sqrt{-2 \ln u_1}\,\cos(2\pi u_2)$ suit la loi normale standard. Utile pour bruit gaussien, dispersion réaliste de tirs.
-- **Choix pondéré** (loot tables) : on calcule la somme cumulative des poids, on tire $u$ uniforme dans $[0, \text{somme}]$ et on renvoie l'item correspondant. Pour beaucoup d'items, l'**alias method** de Walker fait ça en $O(1)$ après un précalcul $O(n)$.
-- **Échantillonnage de Poisson** (placement d'objets sans agglomérat) : *Poisson disk sampling*, l'algorithme de Bridson en $O(n)$. Utilisé dans le placement réaliste d'arbres, étoiles, nuages.
+- **Loi normale** (les valeurs « tombent en cloche » autour d'une moyenne, comme la taille des humains autour de 1,70 m) : la **transformation de Box-Muller** convertit deux uniformes en deux variables qui suivent cette loi. Si $u_1, u_2$ sont uniformes, alors $z = \sqrt{-2 \ln u_1}\,\cos(2\pi u_2)$ suit la loi normale standard. Utile pour le bruit gaussien et la dispersion réaliste des tirs.
+- **Choix pondéré** (par exemple les *loot tables* d'un boss : 1 % de chance de drop légendaire, 10 % épique, etc.) : on calcule la somme cumulative des poids, on tire $u$ uniforme dans $[0, \text{somme}]$ et on renvoie l'item correspondant. Pour un grand nombre d'items, la **méthode alias de Walker** (1977) effectue ce tirage en $O(1)$ par appel après un précalcul en $O(n)$, en remplaçant la recherche dichotomique par deux accès à des tableaux pré-construits.
+- **Échantillonnage de Poisson** (placement d'objets sans agglomérat — par exemple disposer des arbres dans une forêt sans que deux ne se chevauchent) : la technique de référence est le **Poisson disk sampling**. **L'algorithme de Bridson** (2007) en donne une implémentation en $O(n)$ : on entretient une file de points actifs, on tire des candidats dans une couronne autour d'eux, et on accepte un candidat seulement s'il est suffisamment éloigné des points déjà placés (vérifié rapidement via une grille spatiale). Utilisé pour le placement réaliste d'arbres, d'étoiles, de nuages.
 
 ### Trigonométrie
 
@@ -599,7 +599,11 @@ La **Catmull-Rom spline** est un cas particulier de Hermite où les tangentes so
 T_i = \frac{P_{i+1} - P_{i-1}}{2}
 ```
 
-Conséquence : la courbe **passe exactement par chaque point de contrôle** (interpolante, pas approximante comme Bézier) et reste $C^1$ continue. C'est une des splines les plus utilisées pour les trajectoires de caméra, les chemins de waypoints et l'animation de spline-IK. La variante **Catmull-Rom centripète** (paramétrisation $t_{i+1} = t_i + \|P_{i+1} - P_i\|^{1/2}$) supprime les boucles parasites quand deux points sont très proches ; c'est cette variante qui est retenue par défaut dans les *splines actor* d'Unreal Engine.
+Conséquence : la courbe **passe exactement par chaque point de contrôle** (interpolante, pas approximante comme Bézier) et reste $C^1$ continue.
+
+> **Notation $C^k$.** Une courbe est dite *de classe $C^0$* si elle est continue (pas de saut), *$C^1$* si en plus sa dérivée est continue (pas de cassure de pente), *$C^2$* si la dérivée seconde l'est aussi (la courbure varie sans à-coup). Pour une caméra qui glisse le long d'une spline, on cherche au minimum $C^1$ pour éviter les changements brusques de direction, et idéalement $C^2$ pour que l'accélération ressentie reste lisse.
+
+C'est une des splines les plus utilisées pour les trajectoires de caméra, les chemins de waypoints et l'animation de spline-IK. La variante **Catmull-Rom centripète** (paramétrisation $t_{i+1} = t_i + \|P_{i+1} - P_i\|^{1/2}$) supprime les boucles parasites quand deux points sont très proches ; c'est cette variante qui est retenue par défaut dans les *splines actor* d'Unreal Engine.
 
 ##### B-splines et NURBS — splines à degré arbitraire
 
@@ -944,6 +948,13 @@ en un nouveau vecteur de position homogène qui représente la position de l'obj
 
 #### Espaces de coordonnées
 
+> **Quelques termes du pipeline GPU pour les non-initiés.**
+>
+> - **Shader** : petit programme exécuté par le GPU sur **chaque** sommet (*vertex shader*) ou **chaque** pixel (*fragment shader* / *pixel shader*). C'est le code que vous écrivez pour décider où va un sommet et de quelle couleur sera un pixel. Langages courants : GLSL (OpenGL/Vulkan), HLSL (DirectX), WGSL (WebGPU), Metal Shading Language.
+> - **Uniform** (ou *constant buffer* en HLSL) : variable globale envoyée du CPU au shader, identique pour tous les sommets/pixels d'un même *draw call*. La matrice MVP, par exemple, est un *uniform*.
+> - **Draw call** : un appel d'API ("dessine ces triangles avec ce shader et ces textures"). Réduire leur nombre est un objectif de performance majeur.
+> - **NDC** (*Normalized Device Coordinates*) : cube $[-1, 1]^3$ dans lequel se retrouvent les sommets après projection et division par $w$. C'est l'espace canonique avant transformation finale en pixels.
+
 Dans un moteur 3D, un sommet passe par **plusieurs espaces de coordonnées** avant d'arriver à l'écran. Comprendre cette chaîne est essentiel pour déboguer un problème de rendu, écrire un shader ou positionner correctement un objet.
 
 ```mermaid
@@ -1135,7 +1146,21 @@ et **dans l'autre sens** (linéaire vers sRGB, donc gamma sur écriture finale d
 C_\text{sRGB} = \begin{cases} 12{,}92\,C_\text{lin} & \text{si } C_\text{lin} \le 0{,}0031308 \\[4pt] 1{,}055\,C_\text{lin}^{1/2{,}4} - 0{,}055 & \text{sinon} \end{cases}
 ```
 
-L'exposant effectif global ($\approx 2{,}4$ avec offset) revient à un gamma moyen de $\approx 2{,}2$ — d'où l'approximation usuelle. Le matériel GPU (les samplers `*_SRGB` et les *render target* `RGBA8_SRGB`) implémente la version **exacte** en hardware, donc on ne paie aucun cycle pour la conversion correcte. La règle pratique reste :
+L'exposant effectif global ($\approx 2{,}4$ avec offset) revient à un gamma moyen de $\approx 2{,}2$ — d'où l'approximation usuelle. Le matériel GPU (les samplers `*_SRGB` et les *render target* `RGBA8_SRGB`) implémente la version **exacte** en hardware, donc on ne paie aucun cycle pour la conversion correcte.
+
+> **Vocabulaire express du pipeline d'image.**
+>
+> - **Albedo** : la couleur de base d'un matériau, indépendamment de tout éclairage (un mur peint en rouge a un albedo rouge, qu'il fasse jour ou nuit).
+> - **Roughness** (rugosité) : à quel point la surface est mate (1) ou lisse comme un miroir (0).
+> - **Metallic** : 0 pour un matériau diélectrique (peau, plastique, bois), 1 pour un métal pur ; les valeurs intermédiaires servent surtout à mélanger entre métal sale et oxydation.
+> - **Normal map** : texture qui encode une normale à la surface en chaque texel (pixel de texture), pour simuler du relief sans ajouter de polygones.
+> - **Framebuffer** : la mémoire dans laquelle le GPU écrit le résultat final d'une frame avant qu'il soit envoyé à l'écran.
+> - **Swap chain** : la file d'attente de framebuffers que le système d'affichage présente au moniteur. La *swap chain* contient typiquement 2 ou 3 images (double / triple buffering) qui permutent à chaque frame.
+> - **Render target** : un framebuffer particulier dans lequel un *draw call* va écrire (ce n'est pas forcément le framebuffer final affiché à l'écran ; on peut rendre dans une texture intermédiaire pour faire ensuite du *post-process*, du *bloom* ou un *picking*).
+> - **Bloom** : effet visuel qui simule le débordement lumineux des sources très brillantes (halo autour d'un soleil, d'une lampe). On extrait la part « haute lumière » du framebuffer, on la floute, et on la rajoute sur l'image finale.
+> - **Exposition** : un facteur multiplicatif sur l'image HDR avant tonemapping, qui simule l'iris de l'œil ou le diaphragme de l'appareil photo. Une scène plongée dans le noir va « surexposer » progressivement pour révéler les détails.
+
+La règle pratique reste :
 
 1. **Linéariser à la lecture** des textures *color* (albedo, ambient occlusion baked dans une texture couleur). Les textures **non-color** (normal map, roughness, metallic, masque) sont stockées et lues **linéaire brut** — leur quantifier une courbe gamma fausserait les calculs.
 2. **Tous les calculs** (éclairage, alpha-blending, post-process) en linéaire.
@@ -1552,7 +1577,7 @@ La **navigation** des PNJ nécessite de **planifier un chemin** entre deux point
 
 #### A\* — la fonction d'évaluation
 
-A\* explore un graphe (cases d'une grille, sommets d'un mesh de navigation, voire ECS d'actions GOAP) en évaluant à chaque nœud :
+A\* explore un graphe (cases d'une grille, sommets d'un *navmesh*, voire espace des états d'un planificateur GOAP — cf. plus haut) en évaluant à chaque nœud :
 
 ```math
 f(n) = g(n) + h(n)
@@ -1645,7 +1670,7 @@ Q(s, a) \leftarrow Q(s, a) + \alpha\,\Big[r + \gamma \max_{a'} Q(s', a') - Q(s, 
 
 > **L'équation de Bellman** (Richard Bellman, 1957) est le cœur du RL : elle exprime la valeur d'un état comme la récompense immédiate **plus** la valeur (actualisée par $\gamma$) du meilleur état suivant. La règle de mise à jour ci-dessus pousse à chaque pas la valeur estimée $Q(s, a)$ vers cette cible idéale, $\alpha$ étant le pas d'apprentissage.
 >
-> **Là où le RL est efficace en pratique, et là où il l'est moins.** Le RL donne de très bons résultats quand l'environnement est entièrement simulable et qu'on peut générer des millions d'épisodes. À l'inverse, dans un jeu multijoueur en ligne, on évite généralement de faire tourner du RL en temps réel : le coût d'inférence devient gênant, et un comportement aberrant peut casser une partie ranked. La pratique courante est d'entraîner les politiques *offline* puis de les **distiller** en arbres de décision ou en tables de *lookup* exploitables au runtime — c'est par exemple la technique retenue pour les *drivatars* de *Forza Motorsport*.
+> **Là où le RL est efficace en pratique, et là où il l'est moins.** Le RL donne de très bons résultats quand l'environnement est entièrement simulable et qu'on peut générer des millions d'épisodes. À l'inverse, dans un jeu multijoueur en ligne, on évite généralement de faire tourner du RL en temps réel : le coût d'**inférence** (l'évaluation du réseau de neurones à chaque décision) devient gênant, et un comportement aberrant peut gâcher une partie classée. La pratique courante est d'entraîner les politiques *offline* puis de les **distiller** : on remplace le gros réseau entraîné par une représentation plus légère (un réseau plus petit, un arbre de décision ou une table de *lookup* indexée par l'état) qui imite ses sorties. C'est par exemple la technique retenue pour les *drivatars* de *Forza Motorsport*.
 
 [ Retour en haut de page](#table-des-matières)
 
@@ -1690,10 +1715,10 @@ Les jeux en réseau utilisent différents protocoles de communication pour écha
 - **UDP** (*User Datagram Protocol*) : protocole de communication **sans connexion** et **sans garantie** de livraison. Généralement utilisé dans les jeux en temps réel en raison de sa faible **latence**. Cependant, les paquets de données peuvent être perdus ou arriver dans le désordre, ce qui nécessite une gestion supplémentaire (numéros de séquence, retransmissions sélectives) de la part du programme de jeu.
 - **TCP** (*Transmission Control Protocol*) : protocole de communication **orienté connexion** avec **garantie** de livraison. Il garantit que les paquets de données sont livrés dans l'ordre et sans erreurs. Généralement utilisé pour les communications non critiques pour le temps, telles que le chat en jeu, la mise à jour des classements ou le téléchargement d'assets.
 
-> De plus en plus de jeux modernes utilisent **WebRTC** ou **QUIC** (basé sur UDP), qui combinent fiabilité, faible latence et chiffrement.
+> De plus en plus de jeux modernes utilisent **WebRTC** ou **QUIC** (basés sur UDP), qui combinent fiabilité, faible latence et chiffrement.
 >
-> - **WebRTC** (*Web Real-Time Communication*) : pile P2P standardisée par le W3C, conçue à l'origine pour la visio dans le navigateur (Google Meet, Discord). Inclut traversée NAT (STUN/TURN/ICE), chiffrement DTLS, et un canal de données fiable ou non au choix (*data channels*). De plus en plus utilisée par les jeux web (.io games, *Krunker*).
-> - **QUIC** (Google → IETF, 2021) : protocole de transport au-dessus d'UDP qui combine TCP + TLS + multiplexage HTTP/2 dans une seule poignée de main. Beaucoup moins de RTT à la connexion (0-RTT possible), pas de *head-of-line blocking*, chiffrement obligatoire. C'est la base de **HTTP/3** et un candidat sérieux pour remplacer TCP même en jeu (Riot, Epic l'utilisent côté backend).
+> - **WebRTC** (*Web Real-Time Communication*) : pile P2P standardisée par le W3C, conçue à l'origine pour la visio dans le navigateur (Google Meet, Discord). Inclut une **traversée de NAT** (technique pour permettre à deux machines situées chacune derrière un routeur domestique de se parler directement, normalement bloquées par la translation d'adresses) via les protocoles **STUN** (découverte de l'IP publique), **TURN** (relais quand la connexion directe échoue) et **ICE** (algorithme qui choisit le meilleur chemin parmi les candidats), un chiffrement par **DTLS** (variante de TLS pour UDP) et un canal de données fiable ou non au choix (*data channels*). De plus en plus utilisée par les jeux web (*.io games*, *Krunker*).
+> - **QUIC** (Google, repris par l'IETF en 2021) : protocole de transport au-dessus d'UDP qui combine TCP + TLS + multiplexage HTTP/2 dans une seule poignée de main. Beaucoup moins d'allers-retours à la connexion (le mode **0-RTT** permet même d'envoyer la première requête sans attendre la réponse du serveur), pas de **head-of-line blocking** (avec TCP, un seul paquet perdu bloque toute la livraison ; QUIC sépare les flux pour qu'un blocage n'affecte que le flux concerné), chiffrement obligatoire. C'est la base de **HTTP/3** et un candidat sérieux pour remplacer TCP même en jeu (Riot, Epic l'utilisent côté backend).
 
 #### Synchronisation et latence
 
@@ -2024,7 +2049,7 @@ Trois choix usuels de PDF, chacun adapté à un terme :
 L'**aliasing** (en français : *crénelage*) apparaît dès qu'on échantillonne un signal continu (un triangle, une texture) à une fréquence inférieure à sa **fréquence de Nyquist** : $f_\text{sample} \ge 2\,f_\text{signal}$. Un triangle avec une arête fine ou une texture haute fréquence produit alors des marches d'escalier, du *moiré*, du *crawling* en mouvement. Quatre familles de techniques :
 
 - **SSAA** (*Super-Sampling Anti-Aliasing*) — la force brute. On rend la scène à $k\times$ la résolution puis on *downsample* par moyenne. Coût mémoire et calcul $\times k^2$. Référence absolue en qualité, jamais utilisé en jeu temps réel sauf en mode "screenshot".
-- **MSAA** (*Multi-Sample AA*) — version optimisée. On évalue le **fragment shader une seule fois par pixel** mais on stocke $k$ échantillons de **profondeur** et de **couverture** (typiquement 2× ou 4×). Très efficace pour les arêtes de polygones, **n'aide pas** sur les textures ni sur les *shader aliasing* (*highlights* spéculaires fines, alpha-test). Dépend du *deferred shading* moderne où il devient compliqué et coûteux.
+- **MSAA** (*Multi-Sample AA*) — version optimisée. On évalue le **fragment shader une seule fois par pixel** mais on stocke $k$ échantillons de **profondeur** et de **couverture** (typiquement 2× ou 4×). Très efficace pour les arêtes de polygones, mais sans effet sur les textures ni sur les *highlights* spéculaires fins ou les contours d'*alpha-test*. S'intègre aussi mal au *deferred shading* moderne, où il faudrait stocker $k$ échantillons de chaque attribut géométrique, ce qui devient prohibitif en mémoire.
 
 ```math
 C_\text{pixel} = \frac{1}{k} \sum_{j=1}^{k} \mathbb{1}[\text{sample}_j \text{ couvert}] \cdot C_\text{shader}
@@ -2037,7 +2062,7 @@ C_\text{pixel} = \frac{1}{k} \sum_{j=1}^{k} \mathbb{1}[\text{sample}_j \text{ co
 C_t(\mathbf{p}) = \alpha\,C_t^\text{rendu}(\mathbf{p}) + (1 - \alpha)\,C_{t-1}(\mathbf{p} + \mathbf{v}_\text{motion})
 ```
 
-Avec $\alpha \approx 0{,}1$, après une dizaine de frames un pixel statique a accumulé une dizaine de sous-échantillons différents : on obtient à peu près la qualité d'un SSAA 10× pour le coût d'un seul rendu par frame. Le défaut classique du TAA est le *ghosting* : sur un objet qui se découvre, une couleur fantôme issue des frames précédentes reste collée derrière lui. Le *neighborhood clamping* (Karis, 2014) atténue cet effet en bornant la couleur historique aux extrêmes du voisinage spatial. **DLAA** et **TSR** (Unreal 5) sont des évolutions modernes de TAA.
+Avec $\alpha \approx 0{,}1$, après une dizaine de frames un pixel statique a accumulé une dizaine de sous-échantillons différents : on obtient à peu près la qualité d'un SSAA 10× pour le coût d'un seul rendu par frame. Le défaut classique du TAA est le *ghosting* : sur un objet qui se découvre, une couleur fantôme issue des frames précédentes reste collée derrière lui. Le *neighborhood clamping* (Karis, 2014) atténue cet effet en bornant la couleur historique aux valeurs minimales et maximales rencontrées dans le voisinage spatial du pixel à la frame courante : si la couleur historique sort de cette enveloppe (donc si la frame courante a vraiment changé), elle est clampée et le fantôme disparaît. **DLAA** (*Deep-Learning Anti-Aliasing*, NVIDIA — TAA dont la combinaison spatio-temporelle est gérée par un réseau de neurones) et **TSR** (*Temporal Super Resolution* d'Unreal Engine 5 — TAA qui fait également de l'*upscaling*) sont des évolutions modernes de TAA.
 
 #### Tessellation et displacement mapping
 
@@ -2078,7 +2103,7 @@ La règle de Cramer combinée à l'identité du **produit mixte** $(\mathbf{a} \
 t = \frac{\mathbf{q} \cdot \mathbf{e}_2}{\mathbf{p} \cdot \mathbf{e}_1}, \qquad u = \frac{\mathbf{p} \cdot \mathbf{T}}{\mathbf{p} \cdot \mathbf{e}_1}, \qquad v = \frac{\mathbf{q} \cdot \mathbf{D}}{\mathbf{p} \cdot \mathbf{e}_1}
 ```
 
-Le triangle est touché si $\mathbf{p} \cdot \mathbf{e}_1 \ne 0$ (rayon non parallèle), $u \ge 0$, $v \ge 0$, $u + v \le 1$ et $t > t_\text{min}$. Le coût se résume à 5 produits scalaires, 2 produits vectoriels et 1 division, soit une trentaine de flops par test. Les GPUs RTX et RDNA2+ embarquent une unité matérielle dédiée (les **RT cores**) qui exécute ce test directement en silicium et l'enchaîne avec une descente dans la **BVH** (*Bounding Volume Hierarchy* — arbre dont chaque nœud englobe ses enfants dans une boîte AABB ; pour tester un rayon contre un million de triangles, on commence par tester la racine, puis on descend récursivement seulement dans les enfants intersectés, ce qui réduit la complexité de $O(n)$ à $O(\log n)$ par rayon).
+Le triangle est touché si $\mathbf{p} \cdot \mathbf{e}_1 \ne 0$ (rayon non parallèle), $u \ge 0$, $v \ge 0$, $u + v \le 1$ et $t > t_\text{min}$. Le coût se résume à 5 produits scalaires, 2 produits vectoriels et 1 division, soit une trentaine de flops par test. Les GPUs récents (côté NVIDIA à partir des séries RTX, côté AMD à partir de l'architecture RDNA 2) embarquent une unité matérielle dédiée (les **RT cores**, *Ray Tracing cores* — circuits spécialisés qui calculent l'intersection rayon/triangle directement en silicium plutôt que via les unités de calcul génériques) et l'enchaînent avec une descente dans la **BVH** (*Bounding Volume Hierarchy* — arbre dont chaque nœud englobe ses enfants dans une boîte AABB ; pour tester un rayon contre un million de triangles, on commence par tester la racine, puis on descend récursivement seulement dans les enfants intersectés, ce qui réduit la complexité de $O(n)$ à $O(\log n)$ par rayon).
 
 > **Structures spatiales d'accélération.** Quand on a beaucoup d'objets ou de triangles à tester (collision, ray tracing, culling), on les organise dans une structure hiérarchique :
 >
@@ -2095,7 +2120,7 @@ Au lieu de s'arrêter à la première intersection, on **rebondit** : à chaque 
 L_o \approx \frac{1}{N} \sum_{k=1}^{N} \frac{f_r(\boldsymbol{\omega}_i^{(k)}, \boldsymbol{\omega}_o)\,L_i(\boldsymbol{\omega}_i^{(k)})\,(\boldsymbol{\omega}_i^{(k)} \cdot \mathbf{n})}{p(\boldsymbol{\omega}_i^{(k)})}
 ```
 
-où $p$ est la **densité de probabilité** d'échantillonnage. Plus $N$ est grand, moins l'image est bruitée. Quake II RTX, Cyberpunk 2077 Path Tracing et Portal RTX sont des path tracers temps réel ; ils s'appuient sur des **denoisers neuronaux** (NVIDIA OptiX) pour rendre une image propre avec seulement 1-2 échantillons par pixel.
+où $p$ est la **densité de probabilité** d'échantillonnage. Plus $N$ est grand, moins l'image est bruitée. *Quake II RTX*, le mode *Path Tracing* de *Cyberpunk 2077* et *Portal RTX* sont des path tracers temps réel ; ils s'appuient sur des **denoisers neuronaux** — des réseaux de neurones (typiquement NVIDIA OptiX) entraînés à transformer une image très bruitée (1 à 2 échantillons par pixel) en une image propre, en exploitant les corrélations spatiales et temporelles que produisent les BRDF et les vecteurs de mouvement.
 
 #### Global illumination
 
@@ -2110,7 +2135,7 @@ Tous les rebonds **autres que la première intersection** forment l'**illuminati
 
 Le rendu d'image en 4K coûte 4× le rendu 1080p. La parade : rendre à résolution interne plus basse (souvent 1440p ou 1080p) puis **reconstruire** la 4K en exploitant les **frames précédentes**. C'est le rôle des techniques d'upscaling :
 
-- **DLSS** (NVIDIA, 2018) : réseau convolutionnel entraîné offline sur des images 16K de référence.
+- **DLSS** (NVIDIA, 2018) : **réseau convolutionnel** (un réseau de neurones spécialisé dans les images, qui apprend à reconnaître les motifs locaux comme les contours et les textures) entraîné *offline* sur des images 16K de référence.
 - **FSR 2/3** (AMD, 2022) : algorithmique pur (heuristiques + reprojection + accumulation), tourne sur tout GPU.
 - **XeSS** (Intel, 2022) : approche neurale similaire à DLSS, plus portable.
 - **Frame Generation** (DLSS 3, FSR 3) : interpole / extrapole une frame intermédiaire à partir de deux frames rendues + des vecteurs de mouvement, pour doubler le framerate perçu.
@@ -2158,7 +2183,7 @@ F --> O[Output merger]
 Le **culling** et l'**occlusion** sont des techniques utilisées pour optimiser le rendu graphique en éliminant les objets ou les parties d'objets qui ne sont pas visibles à l'écran.
 
 - Le **culling** se concentre sur l'élimination des **objets entiers** qui sont en dehors du champ de vision de la caméra (*frustum culling*) ou orientés à l'opposé (*backface culling*).
-- L'**occlusion** élimine les **parties d'objets** qui sont cachées derrière d'autres objets (*occlusion culling*, *Z-buffer*, *Hi-Z*).
+- L'**occlusion** élimine les **parties d'objets** qui sont cachées derrière d'autres objets (*occlusion culling*, *Z-buffer*, *Hi-Z* — pour *Hierarchical-Z*, version pyramide du Z-buffer où chaque niveau garde la profondeur la plus lointaine d'un bloc de $2 \times 2$ pixels du niveau inférieur, ce qui permet de rejeter une tuile entière sans tester chaque pixel).
 
 > **Vocabulaire indispensable du pipeline.**
 >
