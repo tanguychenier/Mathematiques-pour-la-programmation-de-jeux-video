@@ -11,6 +11,9 @@
 1. [Introduction](#introduction)
 2. [Bases des mathématiques](#bases-des-mathématiques)
    - [Coordonnées cartésiennes](#coordonnées-cartésiennes)
+     - [Conventions de repère : main droite vs main gauche, Y-up vs Z-up](#conventions-de-repère--main-droite-vs-main-gauche-y-up-vs-z-up)
+   - [Précision flottante : ce que tout dev de jeu doit savoir](#précision-flottante--ce-que-tout-dev-de-jeu-doit-savoir)
+   - [Aléa et déterminisme](#aléa-et-déterminisme)
    - [Trigonométrie](#trigonométrie)
    - [Vecteurs](#vecteurs)
      - [Magnitude](#magnitude)
@@ -27,8 +30,7 @@
      - [Translation](#translation)
      - [Rotation](#rotation)
      - [Quaternions](#quaternions)
-     - [Mise à l'échelle](#mise-à-léchelle)
-     - [Homothétie](#homothétie)
+     - [Mise à l'échelle (et son cas particulier, l'homothétie)](#mise-à-léchelle-et-son-cas-particulier-lhomothétie)
      - [Cisaillement](#cisaillement)
    - [Géométrie linéaire](#géométrie-linéaire)
      - [Projection](#projection)
@@ -39,6 +41,7 @@
    - [Graphiques vectoriels et bitmap](#graphiques-vectoriels-et-bitmap)
    - [Résolution et profondeur de couleur](#résolution-et-profondeur-de-couleur)
    - [Espaces de couleur](#espaces-de-couleur)
+     - [Linéaire vs sRGB : le piège que tout le monde rencontre](#linéaire-vs-srgb--le-piège-que-tout-le-monde-rencontre)
    - [Formats de fichier d'image](#formats-de-fichier-dimage)
 4. [Éclairage et ombres](#éclairage-et-ombres)
    - [Sources de lumière](#sources-de-lumière)
@@ -53,6 +56,7 @@
    - [Cinématique inverse](#cinématique-inverse)
 7. [Physique des jeux](#physique-des-jeux)
    - [Simulation physique](#simulation-physique)
+     - [Pas de simulation fixe ≠ pas de frame](#pas-de-simulation-fixe--pas-de-frame)
    - [Détection de collision](#détection-de-collision)
    - [Résolution de collision](#résolution-de-collision)
 8. [Intelligence artificielle](#intelligence-artificielle)
@@ -97,7 +101,7 @@ Vous apprendrez à appliquer ces concepts pour résoudre les problèmes liés à
 
 Que vous soyez un développeur expérimenté ou que vous débutiez tout juste, nous espérons que ce dépôt vous aidera à **renforcer vos connaissances** en mathématiques et à **améliorer vos compétences** en programmation de jeux 3D.
 
-[🔝 Retour en haut de page](#table-des-matières)
+[ Retour en haut de page](#table-des-matières)
 
 ---
 
@@ -128,6 +132,173 @@ L'espace cartésien est défini par un système de coordonnées cartésiennes, q
 
 Fondamentales dans le domaine des jeux vidéo, en particulier pour les jeux en 3 dimensions, elles permettent de représenter et de manipuler les **positions**, les **mouvements** et les **orientations** des objets dans l'espace virtuel.
 
+#### Conventions de repère : main droite vs main gauche, Y-up vs Z-up
+
+Trois choses qu'on néglige souvent à ses dépens :
+
+1. **L'orientation du repère** : *main droite* (right-handed, RH) ou *main gauche* (left-handed, LH). Pliez votre main droite : pouce $= x$, index $= y$, majeur $= z$. Pour un repère gauche, faites pareil avec votre main gauche — l'axe $z$ pointe dans l'autre sens.
+2. **L'axe vertical** : *Y-up* (l'axe $y$ pointe vers le haut) ou *Z-up* (l'axe $z$ pointe vers le haut).
+3. **Le sens de rotation positif** : antihoraire (mathématiques classiques) ou horaire selon la convention.
+
+Les moteurs et outils ne sont pas d'accord :
+
+| Système                 | Orientation | Vertical         | Notes                                |
+| ----------------------- | ----------- | ---------------- | ------------------------------------ |
+| OpenGL, Maya, Houdini   | main droite | $Y$ vers le haut | Convention "graphique" historique    |
+| DirectX (legacy), Unity | main gauche | $Y$ vers le haut | $z$ pointe vers l'écran              |
+| Unreal Engine           | main gauche | $Z$ vers le haut | Hérité du moteur Quake               |
+| Blender, 3ds Max, CAO   | main droite | $Z$ vers le haut | Hérité de la convention CAO          |
+| glTF, Vulkan, WebGPU    | main droite | $Y$ vers le haut | Standard d'échange moderne           |
+
+**Pourquoi ça compte ?** Quand on importe un modèle Blender (RH, Z-up) dans Unity (LH, Y-up), un asset orienté correctement à l'export apparaît tourné de 90° et reflété par rapport à un axe. Les outils d'import font automatiquement la conversion, mais c'est la source #1 de bugs visuels en pipeline 3D ("ma voiture est sur le toit").
+
+**Conversion Z-up → Y-up** : on permute $y$ et $z$ et on change un signe :
+
+```math
+\begin{pmatrix} x' \\ y' \\ z' \end{pmatrix}_\text{Y-up} = \begin{pmatrix} x \\ z \\ -y \end{pmatrix}_\text{Z-up}
+```
+
+**Conversion main-droite → main-gauche** : on inverse un seul axe (souvent $z$) — *toutes les rotations doivent alors être inversées* (sinon les rotations apparaissent à l'envers) :
+
+```math
+\begin{pmatrix} x' \\ y' \\ z' \end{pmatrix}_\text{LH} = \begin{pmatrix} x \\ y \\ -z \end{pmatrix}_\text{RH}
+```
+
+> **Règle de survie.** Quand vous écrivez du code mathématique dans un projet, **annoncez la convention en commentaire** au début du fichier ("Convention : right-handed, Y-up, rotation positive antihoraire vue depuis l'axe positif"). Tous les bugs de rotation inverse, de skybox à l'envers et de normales mal-orientées viennent d'une convention non documentée.
+
+### Précision flottante : ce que tout dev de jeu doit savoir
+
+Les nombres réels n'existent pas en machine. Ce que votre CPU/GPU manipule, ce sont des **flottants IEEE 754**, et leurs limites se révèlent dès qu'on programme un jeu sérieux.
+
+#### Représentation : le format `float` 32 bits
+
+Un `float` (binary32) découpe ses 32 bits en :
+
+- **1 bit** de signe ;
+- **8 bits** d'exposant (biaisé de 127) ;
+- **23 bits** de mantisse (24 bits effectifs avec le `1` implicite).
+
+La valeur représentée est : $(-1)^s \times 1{.}m \times 2^{e-127}$.
+
+Conséquences pratiques pour le game-dev :
+
+- **Précision relative**, pas absolue. À l'origine, la précision est d'environ $1.2 \times 10^{-7}$ ; à $x = 10\,000$, elle tombe à environ $7.6 \times 10^{-4}$ (~ 1 mm). À $x = 1\,000\,000$ (genre une carte open-world très large), la précision tombe à $6 \cdot 10^{-2}$ (~ 6 cm) : les objets s'animent avec des saccades visibles.
+- **L'addition n'est pas associative** : `(a + b) + c ≠ a + (b + c)` en général. Si vous accumulez du `Δt` à chaque frame depuis l'origine, vous accumulez aussi de l'erreur — d'où l'usage du compteur de temps en `double`.
+- **`0.1 + 0.2 == 0.3` est faux** : la base 2 ne représente pas exactement les fractions de base 10.
+
+#### Le piège de la comparaison directe
+
+```csharp
+// FAUX en général
+if (transform.position.y == targetHeight) { ... }
+
+// Correct : comparer à un epsilon
+if (Mathf.Abs(transform.position.y - targetHeight) < 1e-4f) { ... }
+
+// Encore mieux : epsilon relatif (utile pour des grandes valeurs)
+bool ApproxEqual(float a, float b, float relTol = 1e-5f, float absTol = 1e-7f)
+ => MathF.Abs(a - b) <= MathF.Max(absTol, relTol * MathF.Max(MathF.Abs(a), MathF.Abs(b)));
+```
+
+> **`Mathf.Approximately` (Unity) utilise un epsilon de l'ordre de $10^{-6}$** : adapté aux objets proches de l'origine, **inutilisable** pour comparer des positions à plusieurs kilomètres. Roulez votre propre comparateur dans ce cas.
+
+#### Catastrophic cancellation
+
+Soustraire deux nombres flottants proches **détruit la précision relative** :
+
+```text
+a = 1.234567f          // 7 chiffres significatifs
+b = 1.234566f          // 7 chiffres significatifs
+a - b = 0.000001f      // 1 seul chiffre significatif !
+```
+
+C'est pourquoi le calcul d'une normale de triangle par `cross(b - a, c - a)` est sensible quand les trois sommets sont presque colinéaires : on soustrait des positions très proches.
+
+#### Open-world : la solution du repère flottant
+
+Au-delà de quelques kilomètres en `float`, la solution canonique est de **recentrer le repère sur le joueur** : périodiquement (toutes les `1024` unités, par exemple), on recalcule toutes les positions du monde par rapport au joueur, qui retourne à $(0, 0, 0)$. *Star Citizen*, *Outerra* et *Kerbal Space Program* utilisent cette technique. Alternative : passer en `double` côté CPU et reconvertir en `float` juste avant l'envoi GPU.
+
+### Aléa et déterminisme
+
+Un jeu vidéo a besoin d'aléa **partout** — placement d'arbres dans une forêt, dégâts critiques, mélange du paquet de cartes, génération de niveau infini, bruit pour les textures, comportement d'IA. Mais cet "aléa" doit souvent être **reproductible** :
+
+- **Replay** : rejouer une partie enregistrée doit reproduire les mêmes événements.
+- **Multijoueur lockstep** : *Age of Empires*, *StarCraft*, *Factorio* synchronisent les joueurs en n'envoyant que les inputs ; tout le reste (collisions, IA, RNG) doit donner le même résultat sur chaque machine.
+- **Génération procédurale** : *Minecraft*, *Terraria*, *No Man's Sky* doivent recréer le même monde à partir d'une **seed** (graine) donnée.
+
+D'où l'usage de **PRNG** (pseudo-random number generators) : des générateurs déterministes qui, à partir d'un état initial, produisent une séquence "qui ressemble à de l'aléatoire".
+
+#### Anatomie d'un PRNG
+
+Un PRNG entretient un **état** $S_n$ et applique une fonction de transition $f$ à chaque appel :
+
+```math
+S_{n+1} = f(S_n) \qquad x_n = g(S_n)
+```
+
+où $x_n$ est le nombre observable. La **période** est la longueur du cycle $S_0 \to S_1 \to \cdots \to S_0$ avant répétition.
+
+#### Choisir un PRNG
+
+| Algorithme             | État (bits) | Période             | Vitesse | Qualité                | Cas d'usage                          |
+| ---------------------- | ----------- | ------------------- | ------- | ---------------------- | ------------------------------------ |
+| **LCG**                | 32-64       | $\le 2^{64}$        |    | Médiocre (motifs 2D)   | À éviter, présent par héritage       |
+| **Mersenne Twister**   | 19 968      | $2^{19937}-1$       |      | Bonne                  | `rand()` de C++/Python, surpoids RAM |
+| **xorshift / xoshiro** | 64-256      | $\ge 2^{128}-1$     |     | Bonne                  | Rust `SmallRng`, GPU-friendly        |
+| **PCG**                | 64-128      | $\ge 2^{64}$        |     | Excellente (BigCrush)  | Le défaut moderne (M. O'Neill, 2014) |
+| **SplitMix64**         | 64          | $2^{64}$            |    | Bonne                  | Seeder, hachages spatiaux            |
+
+ **Lexique du tableau :**
+
+- **État (bits)** : la mémoire interne du générateur. Plus c'est grand, plus la séquence avant répétition peut être longue.
+- **Période** : nombre d'appels avant que la séquence se répète exactement à l'identique.
+- **BigCrush** : suite de tests statistiques de référence (TestU01, Pierre L'Ecuyer) utilisée pour disqualifier les PRNG biaisés.
+- **LCG** (*Linear Congruential Generator*) : la formule $S_{n+1} = (a \cdot S_n + c) \bmod m$.
+
+> **Aucun PRNG n'est cryptographiquement sûr** par défaut — pour générer un token de session ou simuler un draw "fair" avec mise réelle, utilisez `crypto.randomBytes`/`SecureRandom`. Pour un jeu, c'est inutile et coûteux.
+
+#### Seeder proprement
+
+Une seed mal choisie biaise la séquence. Deux règles :
+
+1. **Ne jamais utiliser `time()` directement comme seed** : sur un cluster multijoueur, deux instances démarrées à la même seconde ont la même seed. Préférez une combinaison `time()`-XOR-`pid()`-XOR-`hash(machineId)`.
+2. **Toujours passer la seed à travers SplitMix64** avant de l'utiliser : SplitMix64 distribue uniformément les bits, ce qui évite les corrélations sur des seeds proches (`seed=1` et `seed=2` donneraient sinon des séquences similaires sur certains PRNG).
+
+```python
+def splitmix64(x: int) -> int:
+ x = (x + 0x9E3779B97F4A7C15) & 0xFFFFFFFFFFFFFFFF
+ x = ((x ^ (x >> 30)) * 0xBF58476D1CE4E5B9) & 0xFFFFFFFFFFFFFFFF
+ x = ((x ^ (x >> 27)) * 0x94D049BB133111EB) & 0xFFFFFFFFFFFFFFFF
+ return x ^ (x >> 31)
+```
+
+#### Hachage spatial (PRNG sans état)
+
+Pour un terrain procédural infini, on a besoin d'aléa par cellule **sans entretenir d'état** : `noise(x, y)` doit toujours donner le même résultat sans dépendre de l'ordre d'appel. La technique : un **hachage** `(x, y) → uint32` qu'on découpe en bits :
+
+```csharp
+// Hachage spatial déterministe (style PCG)
+uint Hash2D(int x, int y, uint seed)
+{
+ uint h = seed;
+ h ^= (uint)x * 0x85EBCA6B;
+ h ^= ((uint)y * 0xC2B2AE35) ^ (h >> 16);
+ h *= 0x27D4EB2F;
+ return h ^ (h >> 16);
+}
+float Random01(uint h) => (h >> 8) * (1f / (1u << 24));
+```
+
+C'est exactement comme ça que *Minecraft* place des arbres : `Hash2D(blockX, blockZ, worldSeed)` détermine le contenu de chaque chunk, sans avoir à mémoriser quoi que ce soit.
+
+#### Distributions au-delà de l'uniforme
+
+Un PRNG donne des nombres uniformes dans $[0, 1[$. Pour autre chose :
+
+- **Loi normale** (cloches autour d'une moyenne) : Box-Muller. Si $u_1, u_2$ sont uniformes, $z = \sqrt{-2 \ln u_1}\,\cos(2\pi u_2)$ suit la loi normale standard. Utile pour bruit gaussien, dispersion réaliste de tirs.
+- **Choix pondéré** (loot tables) : on calcule la somme cumulative des poids, on tire $u$ uniforme dans $[0, \text{somme}]$ et on renvoie l'item correspondant. Pour beaucoup d'items, l'**alias method** de Walker fait ça en $O(1)$ après un précalcul $O(n)$.
+- **Échantillonnage de Poisson** (placement d'objets sans agglomérat) : *Poisson disk sampling*, l'algorithme de Bridson en $O(n)$. Utilisé dans le placement réaliste d'arbres, étoiles, nuages.
+
 ### Trigonométrie
 
 La trigonométrie est l'étude des relations entre les **angles** et les **longueurs** dans un triangle. C'est un outil omniprésent en programmation de jeux : rotation d'un sprite, déplacement d'un projectile, oscillation, calcul d'un angle de tir, etc.
@@ -140,7 +311,7 @@ Sur le cercle unité (rayon $1$ centré à l'origine), un point repéré par l'a
 (x, y) = (\cos\theta,\ \sin\theta)
 ```
 
-> ℹ️ En programmation, les angles sont **presque toujours exprimés en radians** ($2\pi$ rad $= 360°$). La conversion se fait avec : $\theta_\text{rad} = \theta_\text{deg} \times \dfrac{\pi}{180}$.
+> ℹ En programmation, les angles sont **presque toujours exprimés en radians** ($2\pi$ rad $= 360°$). La conversion se fait avec : $\theta_\text{rad} = \theta_\text{deg} \times \dfrac{\pi}{180}$.
 
 #### Fonctions trigonométriques
 
@@ -175,8 +346,8 @@ v_x = v \cos\theta, \quad v_y = v \sin\theta
 ```csharp
 float angleRad = angleDeg * MathF.PI / 180f;
 Vector2 velocity = new Vector2(
-    speed * MathF.Cos(angleRad),
-    speed * MathF.Sin(angleRad)
+ speed * MathF.Cos(angleRad),
+ speed * MathF.Sin(angleRad)
 );
 ```
 
@@ -255,13 +426,13 @@ using TansoftwareEngine;
 
 public class Game : GameEngine
 {
-    void Start()
-    {
-        Vector3 position = new Vector3(1.0f, 2.0f, 3.0f);
-        Player myPlayer = new Player();
+ void Start()
+ {
+ Vector3 position = new Vector3(1.0f, 2.0f, 3.0f);
+ Player myPlayer = new Player();
 
-        myPlayer.setPosition(position);
-    }
+ myPlayer.setPosition(position);
+ }
 }
 ```
 
@@ -343,35 +514,40 @@ L'opération inverse — retrouver $t$ connaissant $A$, $B$ et la valeur courant
 
 #### Interpolation sphérique (SLERP)
 
-Pour interpoler entre deux **directions** ou deux **rotations** sur une sphère unité, l'interpolation linéaire ne suffit pas (vitesse non constante). On utilise le **SLERP** :
-
-```math
-\mathrm{slerp}(\mathbf{q}_0, \mathbf{q}_1, t) = \frac{\sin\!\big((1-t)\,\Omega\big)}{\sin\Omega}\,\mathbf{q}_0 + \frac{\sin(t\,\Omega)}{\sin\Omega}\,\mathbf{q}_1
-```
-
-où $\Omega$ est l'angle entre $\mathbf{q}_0$ et $\mathbf{q}_1$ ($\cos\Omega = \mathbf{q}_0 \cdot \mathbf{q}_1$). Le SLERP est l'outil de référence pour interpoler entre deux **quaternions** (rotation 3D).
+Pour interpoler entre deux **directions** ou deux **rotations** sur une sphère unité, l'interpolation linéaire ne suffit pas (la vitesse angulaire varie). On utilise le **SLERP** (*Spherical Linear Interpolation*). La formule complète est donnée plus bas dans la [section Quaternions](#interpolation--slerp), où le contexte est plus naturel.
 
 #### Easing — interpolation non-linéaire
 
-Pour un rendu plus naturel, on remplace souvent le $t$ linéaire par une fonction d'easing. Quelques classiques :
+> **Qu'est-ce que l'easing ?**
+> *Easing* signifie littéralement "adoucir". C'est l'idée que dans la vraie vie, rien ne démarre à pleine vitesse et ne s'arrête pile : une voiture accélère puis freine, un objet rebondit, une porte de placard se referme avec un léger ralenti final. En interpolation, **un LERP "tout droit" donne un mouvement mécanique**, robotique. Les fonctions d'easing remplacent le paramètre $t$ par une version courbée de lui-même pour simuler ces accélérations / décélérations naturelles. Les UI modernes (transitions CSS, animations Apple/Material), les caméras de jeu, les démineurs de Démineur — tout passe par de l'easing.
+
+Le principe : on garde $t \in [0, 1]$ mais on l'envoie à travers une fonction $f$ avant l'interpolation : `lerp(A, B, f(t))`. Quelques classiques :
 
 ```math
 \text{easeInQuad}(t) = t^2
 ```
 
+départ lent, arrivée brutale.
+
 ```math
 \text{easeOutQuad}(t) = 1 - (1 - t)^2
 ```
+
+départ rapide, arrivée en douceur.
 
 ```math
 \text{easeInOutQuad}(t) = \begin{cases} 2t^2 & \text{si } t < 0{,}5 \\ 1 - 2(1-t)^2 & \text{sinon} \end{cases}
 ```
 
+départ et arrivée en douceur, vitesse maximale au milieu.
+
 ```math
 \text{smoothstep}(t) = 3t^2 - 2t^3
 ```
 
-> 💡 La fonction `smoothstep` (et sa cousine `smootherstep`) est très utilisée en graphisme et dans les shaders : elle a une dérivée nulle aux extrémités, ce qui donne un mouvement très naturel.
+> **Pourquoi `smoothstep` est partout en graphisme ?** Sa **dérivée** vaut 0 aux deux bords ($t=0$ et $t=1$) et $1{,}5$ au centre. Concrètement : la vitesse de l'animation démarre exactement à zéro, monte, puis revient à zéro. Pas de cassure à l'œil. Sa cousine `smootherstep(t) = 6t^5 - 15t^4 + 10t^3` pousse encore plus loin (dérivée première ET seconde nulles aux bords), au prix de quelques multiplications de plus. C'est la fonction d'easing préférée des shaders et de la génération procédurale.
+>
+> **Pour aller plus loin** — visualisez tous les easings classiques (sine, cubic, expo, elastic, bounce…) et copiez le code sur [easings.net](https://easings.net/). C'est la référence universelle des animateurs UI.
 
 #### Courbes de Bézier
 
@@ -420,7 +596,7 @@ La multiplication est effectuée en multipliant les éléments de chaque ligne d
 AB = [\,c_{ij}\,] \quad \text{où} \quad c_{ij} = \sum_{k=1}^{n} a_{ik} \cdot b_{kj}
 ```
 
-> ⚠️ La multiplication de matrices **n'est pas commutative** : en général, $AB \neq BA$.
+> La multiplication de matrices **n'est pas commutative** : en général, $AB \neq BA$.
 
 ### Transformations
 
@@ -508,18 +684,26 @@ Pour représenter une rotation d'angle $\theta$ autour d'un axe unitaire $\mathb
 
 ##### Multiplication (produit de Hamilton)
 
-La composition de deux rotations $\mathbf{q}_1$ puis $\mathbf{q}_2$ correspond au produit $\mathbf{q}_2 \cdot \mathbf{q}_1$ :
+Le produit de deux quaternions $\mathbf{q}_a = (w_a, x_a, y_a, z_a)$ et $\mathbf{q}_b = (w_b, x_b, y_b, z_b)$ s'écrit :
 
 ```math
-\mathbf{q}_1 \mathbf{q}_2 = \begin{pmatrix}
-w_1 w_2 - x_1 x_2 - y_1 y_2 - z_1 z_2 \\
-w_1 x_2 + x_1 w_2 + y_1 z_2 - z_1 y_2 \\
-w_1 y_2 - x_1 z_2 + y_1 w_2 + z_1 x_2 \\
-w_1 z_2 + x_1 y_2 - y_1 x_2 + z_1 w_2
+\mathbf{q}_a \, \mathbf{q}_b = \begin{pmatrix}
+w_a w_b - x_a x_b - y_a y_b - z_a z_b \\
+w_a x_b + x_a w_b + y_a z_b - z_a y_b \\
+w_a y_b - x_a z_b + y_a w_b + z_a x_b \\
+w_a z_b + x_a y_b - y_a x_b + z_a w_b
 \end{pmatrix}
 ```
 
-> ⚠️ Comme la multiplication de matrices, la multiplication de quaternions **n'est pas commutative** : $\mathbf{q}_1 \mathbf{q}_2 \neq \mathbf{q}_2 \mathbf{q}_1$.
+> La multiplication de quaternions **n'est pas commutative** : $\mathbf{q}_a \mathbf{q}_b \neq \mathbf{q}_b \mathbf{q}_a$.
+
+**Composition de rotations** — convention. Avec la formule de rotation $\mathbf{v}' = \mathbf{q}\,\mathbf{p}\,\mathbf{q}^{-1}$ (présentée juste après), pour appliquer **d'abord** $\mathbf{q}_1$ **puis** $\mathbf{q}_2$ on calcule :
+
+```math
+\mathbf{q}_\text{total} = \mathbf{q}_2 \, \mathbf{q}_1
+```
+
+C'est la même convention que les matrices : la transformation appliquée en premier se trouve **à droite** du produit. L'ordre est important — c'est exactement la raison pour laquelle on préfère les quaternions : ils composent proprement, sans gimbal-lock.
 
 ##### Rotation d'un vecteur
 
@@ -531,7 +715,19 @@ Pour faire tourner un vecteur $\mathbf{v}$ par un quaternion $\mathbf{q}$, on co
 
 ##### Interpolation : SLERP
 
-Pour interpoler entre deux orientations $\mathbf{q}_0$ et $\mathbf{q}_1$ de manière fluide, on utilise le **SLERP** (*Spherical Linear Interpolation*), vu plus haut.
+Pour interpoler entre deux orientations $\mathbf{q}_0$ et $\mathbf{q}_1$ de manière fluide, on utilise le **SLERP** (*Spherical Linear Interpolation*) :
+
+```math
+\mathrm{slerp}(\mathbf{q}_0, \mathbf{q}_1, t) = \frac{\sin\!\big((1-t)\,\Omega\big)}{\sin\Omega}\,\mathbf{q}_0 + \frac{\sin(t\,\Omega)}{\sin\Omega}\,\mathbf{q}_1
+```
+
+où $\Omega$ est l'angle entre les deux quaternions, donné par leur **produit scalaire 4D** :
+
+```math
+\cos\Omega = \mathbf{q}_0 \cdot \mathbf{q}_1 = w_0 w_1 + x_0 x_1 + y_0 y_1 + z_0 z_1
+```
+
+> **Astuce d'implémentation.** Si $\cos\Omega < 0$, on renverse le signe de l'un des deux quaternions ($-\mathbf{q}$ représente la même rotation) pour passer par le chemin court sur la sphère. Et quand $\Omega$ est très petit, on retombe sur un LERP suivi d'une normalisation pour éviter la division par $\sin\Omega \to 0$ — c'est ce que font Unity et Unreal en interne.
 
 ```csharp
 // Unity / .NET
@@ -539,59 +735,28 @@ Quaternion targetRot = Quaternion.AngleAxis(45f, Vector3.up);
 transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, t);
 ```
 
-#### Mise à l'échelle
+#### Mise à l'échelle (et son cas particulier, l'homothétie)
 
-La **mise à l'échelle** est une transformation qui agrandit ou rétrécit un objet en multipliant ses coordonnées par un facteur de mise à l'échelle, sans changer sa position.
-
-En 2D, elle peut être représentée par une matrice de transformation homogène 3×3 :
-
-```math
-\begin{pmatrix} s_x & 0 & 0 \\ 0 & s_y & 0 \\ 0 & 0 & 1 \end{pmatrix}
-```
-
-où $s_x$ et $s_y$ sont les facteurs de mise à l'échelle selon les axes $X$ et $Y$ respectivement.
-
-Si $s_x$ et $s_y$ sont supérieurs à 1, la mise à l'échelle agrandit l'objet ; s'ils sont inférieurs à 1, elle le rétrécit. S'ils sont négatifs, la mise à l'échelle reflète l'objet par rapport à l'axe correspondant.
-
-En 3D, la mise à l'échelle peut être représentée par une matrice de transformation homogène 4×4 :
-
-```math
-\begin{pmatrix} s_x & 0 & 0 & 0 \\ 0 & s_y & 0 & 0 \\ 0 & 0 & s_z & 0 \\ 0 & 0 & 0 & 1 \end{pmatrix}
-```
-
-où $s_x$, $s_y$ et $s_z$ sont les facteurs selon les axes $X$, $Y$ et $Z$.
-
-La multiplication produit le nouveau vecteur de position homogène :
+La **mise à l'échelle** agrandit ou rétrécit un objet en multipliant ses coordonnées par un facteur indépendant par axe, sans changer sa position. En matrices homogènes :
 
 **En 2D :**
 
 ```math
-\mathbf{v}'_h = \begin{pmatrix} s_x & 0 & 0 \\ 0 & s_y & 0 \\ 0 & 0 & 1 \end{pmatrix} \begin{pmatrix} x \\ y \\ 1 \end{pmatrix} = \begin{pmatrix} s_x x \\ s_y y \\ 1 \end{pmatrix}
+S(s_x, s_y) = \begin{pmatrix} s_x & 0 & 0 \\ 0 & s_y & 0 \\ 0 & 0 & 1 \end{pmatrix}
+\quad\Rightarrow\quad
+S \begin{pmatrix} x \\ y \\ 1 \end{pmatrix} = \begin{pmatrix} s_x x \\ s_y y \\ 1 \end{pmatrix}
 ```
 
 **En 3D :**
 
 ```math
-\mathbf{v}'_h = \begin{pmatrix} s_x & 0 & 0 & 0 \\ 0 & s_y & 0 & 0 \\ 0 & 0 & s_z & 0 \\ 0 & 0 & 0 & 1 \end{pmatrix} \begin{pmatrix} x \\ y \\ z \\ 1 \end{pmatrix} = \begin{pmatrix} s_x x \\ s_y y \\ s_z z \\ 1 \end{pmatrix}
+S(s_x, s_y, s_z) = \begin{pmatrix} s_x & 0 & 0 & 0 \\ 0 & s_y & 0 & 0 \\ 0 & 0 & s_z & 0 \\ 0 & 0 & 0 & 1 \end{pmatrix}
 ```
 
-#### Homothétie
+- $s > 1$ agrandit ; $0 < s < 1$ réduit ; $s < 0$ effectue une réflexion par rapport à l'axe.
+- L'**homothétie** est le cas particulier $s_x = s_y = s_z = s$ : un facteur unique appliqué uniformément. Toutes les distances entre les points de l'objet sont multipliées par $s$, les angles sont préservés.
 
-L'**homothétie** consiste à agrandir ou réduire un objet en multipliant toutes les distances entre ses points par un même facteur d'échelle $s$. C'est un cas particulier de mise à l'échelle où $s_x = s_y = s_z$.
-
-En 2D, l'homothétie peut être représentée par une matrice de transformation homogène 3×3 :
-
-```math
-\begin{pmatrix} s & 0 & 0 \\ 0 & s & 0 \\ 0 & 0 & 1 \end{pmatrix}
-```
-
-où $s$ est le facteur d'échelle. Si $s > 1$, l'homothétie agrandit l'objet ; si $0 < s < 1$, elle le réduit. Si $s$ est négatif, elle inverse l'objet.
-
-En 3D :
-
-```math
-\begin{pmatrix} s & 0 & 0 & 0 \\ 0 & s & 0 & 0 \\ 0 & 0 & s & 0 \\ 0 & 0 & 0 & 1 \end{pmatrix}
-```
+> **Mettre à l'échelle non uniformément avant de faire pivoter** déforme l'objet (oblique). En infographie on suit en général l'ordre **scale → rotate → translate** : multiplier $T \cdot R \cdot S$ et appliquer la matrice à un sommet.
 
 #### Cisaillement
 
@@ -605,13 +770,13 @@ En 2D :
 
 où $a$ est le coefficient de cisaillement. Le coefficient $a$ détermine la quantité de déplacement du vecteur dans la direction de l'axe des $x$, par rapport à sa position d'origine, en fonction de sa coordonnée sur l'axe des $y$.
 
-En 3D :
+**Cisaillement 3D — un axe à la fois.** Un cisaillement *pur* dans l'espace déforme un seul axe en fonction d'un autre. Les six combinaisons possibles ($x$ par $y$, $x$ par $z$, $y$ par $x$, $y$ par $z$, $z$ par $x$, $z$ par $y$) sont représentées par une seule entrée hors-diagonale dans la matrice. Par exemple, un cisaillement de $x$ par $y$ d'intensité $a$ s'écrit :
 
 ```math
-\begin{pmatrix} 1 & a_{xy} & a_{xz} & 0 \\ a_{yx} & 1 & a_{yz} & 0 \\ a_{zx} & a_{zy} & 1 & 0 \\ 0 & 0 & 0 & 1 \end{pmatrix}
+S_{xy}(a) = \begin{pmatrix} 1 & a & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 0 & 0 & 1 \end{pmatrix}
 ```
 
-où $a_{xy}$, $a_{xz}$, $a_{yx}$, $a_{yz}$, $a_{zx}$ et $a_{zy}$ sont les coefficients de cisaillement pour chaque paire d'axes.
+Combiner plusieurs cisaillements revient à multiplier ces matrices (l'ordre compte). Mettre simultanément les six coefficients hors-diagonale dans une même matrice produit une **transformation affine générale**, pas un cisaillement pur — à utiliser avec prudence.
 
 La multiplication produit :
 
@@ -621,10 +786,10 @@ La multiplication produit :
 \mathbf{v}'_h = \begin{pmatrix} 1 & a & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{pmatrix} \begin{pmatrix} x \\ y \\ 1 \end{pmatrix} = \begin{pmatrix} x + a y \\ y \\ 1 \end{pmatrix}
 ```
 
-**En 3D :**
+**En 3D, cisaillement de $x$ par $y$ :**
 
 ```math
-\mathbf{v}'_h = \begin{pmatrix} 1 & a_{xy} & a_{xz} & 0 \\ a_{yx} & 1 & a_{yz} & 0 \\ a_{zx} & a_{zy} & 1 & 0 \\ 0 & 0 & 0 & 1 \end{pmatrix} \begin{pmatrix} x \\ y \\ z \\ 1 \end{pmatrix} = \begin{pmatrix} x + a_{xy} y + a_{xz} z \\ y + a_{yx} x + a_{yz} z \\ z + a_{zx} x + a_{zy} y \\ 1 \end{pmatrix}
+\mathbf{v}'_h = S_{xy}(a) \begin{pmatrix} x \\ y \\ z \\ 1 \end{pmatrix} = \begin{pmatrix} x + a y \\ y \\ z \\ 1 \end{pmatrix}
 ```
 
 ### Géométrie linéaire
@@ -663,7 +828,7 @@ où $\theta$ est l'angle de vue (FOV), $w$ et $h$ sont les largeur et hauteur de
 
 #### Perspective
 
-> ℹ️ Nous vous invitons à ne pas confondre la **perspective**, qui fait référence à la façon dont les objets apparaissent différents en taille et en forme en fonction de leur position et de leur distance par rapport à un point de vue, et la **projection perspective**, vue juste avant, qui est une méthode utilisée pour projeter des objets en 3D sur un plan en 2D en utilisant une caméra virtuelle.
+> ℹ Nous vous invitons à ne pas confondre la **perspective**, qui fait référence à la façon dont les objets apparaissent différents en taille et en forme en fonction de leur position et de leur distance par rapport à un point de vue, et la **projection perspective**, vue juste avant, qui est une méthode utilisée pour projeter des objets en 3D sur un plan en 2D en utilisant une caméra virtuelle.
 
 La perspective est une transformation utilisée en informatique graphique pour donner une **impression de profondeur** et de distance aux objets en 3D. Elle peut être représentée en 3D par la même matrice 4×4 que la projection perspective :
 
@@ -727,7 +892,7 @@ La transformation complète d'un sommet $\mathbf{v}_{\text{local}}$ s'écrit com
 \mathbf{v}_{\text{clip}} = P \cdot V \cdot M \cdot \mathbf{v}_{\text{local}}
 ```
 
-[🔝 Retour en haut de page](#table-des-matières)
+[ Retour en haut de page](#table-des-matières)
 
 ---
 
@@ -839,13 +1004,43 @@ C = (2^{b_\text{RGB}})^3 = 2^b
 
 ### Espaces de couleur
 
-Les images bitmap peuvent être stockées en utilisant différents espaces de couleur, qui déterminent la manière dont les informations de couleur sont représentées. Les espaces de couleur les plus courants sont :
+> **Qu'est-ce qu'un espace de couleur ?** Une **convention** qui dit comment encoder une couleur en chiffres : combien de composantes (rouge/vert/bleu, ou cyan/magenta/jaune…), sur quelle plage (0-255, 0.0-1.0…) et selon quelle transformation. Deux images peuvent contenir les "mêmes" pixels physiques mais avec des chiffres totalement différents si elles utilisent des espaces différents.
 
-- **RVB** (Rouge, Vert, Bleu) : chaque pixel est représenté par trois valeurs de couleur pour les composantes rouge, verte et bleue. C'est le format le plus couramment utilisé dans les jeux vidéo et les applications graphiques. La représentation mathématique d'une couleur est donnée par un triplet $(R, G, B)$.
-- **RVBA** : RVB avec un canal alpha supplémentaire pour représenter la transparence.
-- **CMJN** (Cyan, Magenta, Jaune, Noir) : utilisé surtout en impression.
-- **HSL / HSV** (Teinte, Saturation, Luminosité / Valeur) : pratique pour la manipulation artistique des couleurs.
-- **YUV / YCbCr** : utilisé en compression vidéo (JPEG, MPEG).
+Les images bitmap peuvent être stockées en utilisant différents espaces de couleur. Les plus courants :
+
+- **RVB** (Rouge, Vert, Bleu) : chaque pixel est représenté par trois valeurs pour les composantes rouge, verte et bleue. Format dominant en jeu vidéo et en infographie. Mathématiquement : un triplet $(R, G, B)$.
+- **RVBA** : RVB + un canal **alpha** (transparence). Alpha = 0 totalement transparent, alpha = 1 totalement opaque.
+- **CMJN** (Cyan, Magenta, Jaune, Noir) : utilisé en impression. Soustractif au lieu d'additif.
+- **HSL / HSV** (Teinte, Saturation, Luminosité / Valeur) : reprise des coordonnées RVB sous forme circulaire, pratique pour la manipulation artistique des couleurs (un curseur de "teinte" plutôt que trois sliders R/G/B).
+- **YUV / YCbCr** : utilisé en compression vidéo (JPEG, MPEG, H.264). Sépare la luminance (Y) des composantes de chrominance (U/V), ce qui permet de compresser plus agressivement la chrominance, à laquelle l'œil est moins sensible.
+
+#### Linéaire vs sRGB : *le* piège que tout le monde rencontre
+
+Quand vous voyez une couleur `(0.5, 0.5, 0.5)` stockée dans une texture, à quoi correspond-elle physiquement ? À 50 % de la lumière émise par un pixel blanc ? Ou à 50 % de "l'éclat perçu" par l'œil ? Les deux sont **complètement différents** parce que :
+
+1. L'œil humain est **non-linéaire** : il distingue mieux les nuances dans les sombres que dans les clairs. Un pixel à 50 % de l'éclat perçu correspond en fait à environ 22 % de l'éclat physique réel.
+2. Les écrans LCD/OLED appliquent traditionnellement une **courbe gamma** (~2.2) à leur entrée pour compenser ce biais perceptuel — c'est ce qui définit l'espace **sRGB**.
+
+```math
+C_\text{linéaire} \approx C_\text{sRGB}^{2.2}
+\qquad
+C_\text{sRGB} \approx C_\text{linéaire}^{1/2.2}
+```
+
+(la formule sRGB exacte est par morceaux, mais $2.2$ est une excellente approximation utilisée par les shaders.)
+
+**Pourquoi ça compte ?** Les calculs d'éclairage (Phong, Lambert, PBR — voir plus bas) **doivent** se faire en **espace linéaire**, où l'addition de deux faisceaux de lumière correspond à `C_a + C_b`. Si vous ajoutez deux couleurs sRGB sans conversion préalable, vous obtenez un résultat **délavé**, gris-jaunâtre, qui ne ressemble à rien de réaliste.
+
+**Workflow correct dans un jeu moderne :**
+
+1. **Texture.png** est stockée en sRGB → marquer la sampler `SRGB` à la création (Unity : "sRGB (Color Texture)" coché ; Vulkan : `VK_FORMAT_R8G8B8A8_SRGB`).
+2. Lors du sample dans le shader, le GPU **convertit automatiquement** sRGB → linéaire avant calcul.
+3. Tous les calculs d'éclairage, alpha-blending, post-process, se font en linéaire.
+4. Le pipeline final convertit linéaire → sRGB juste avant l'écriture dans le framebuffer.
+
+> **Le bug classique** : un junior met une texture albedo en `RGBA8_UNORM` au lieu de `RGBA8_SRGB`. Le shader croit lire du linéaire, fait ses calculs sur des chiffres déjà gamma-corrigés, le résultat est trop sombre dans les ombres et trop clair dans les highlights. C'est exactement ce qui produisait l'aspect "PS3" de certains jeux mal calibrés des années 2008-2012.
+>
+> **Qu'est-ce que le HDR (*High Dynamic Range*) ?** Plage dynamique étendue : on stocke des composantes au-delà de `[0, 1]` (un soleil peut faire `(50, 50, 50)`). Cela ouvre la porte au *bloom*, à l'*exposition*, et au *tonemapping* (Reinhard, ACES, etc.) qui ramène la scène HDR dans la plage `[0, 1]` affichable par l'écran. Indispensable en PBR.
 
 ### Formats de fichier d'image
 
@@ -861,27 +1056,27 @@ Les formats de fichier d'image déterminent la manière dont les données d'imag
 
 ```mermaid
 graph TB
-    A[Formats de fichier d'image]
-    A --> B1[BMP]
-    A --> B2[JPEG]
-    A --> B3[PNG]
-    A --> B4[GIF]
-    A --> B5[TGA]
+ A[Formats de fichier d'image]
+ A --> B1[BMP]
+ A --> B2[JPEG]
+ A --> B3[PNG]
+ A --> B4[GIF]
+ A --> B5[TGA]
 
-    B1 --> C1[Non compressé]
-    B1 --> C2[Simple]
-    B2 --> C3[Compressé avec perte]
-    B2 --> C4[Adapté aux photographies]
-    B3 --> C5[Compressé sans perte]
-    B3 --> C6[Adapté aux graphiques et logos]
-    B4 --> C7[Compressé sans perte]
-    B4 --> C8[Limité à 256 couleurs]
-    B4 --> C9[Adapté aux images animées simples]
-    B5 --> C10[Supporte 8, 16, 24 et 32 bits]
-    B5 --> C11[Utilisé pour les textures 3D]
+ B1 --> C1[Non compressé]
+ B1 --> C2[Simple]
+ B2 --> C3[Compressé avec perte]
+ B2 --> C4[Adapté aux photographies]
+ B3 --> C5[Compressé sans perte]
+ B3 --> C6[Adapté aux graphiques et logos]
+ B4 --> C7[Compressé sans perte]
+ B4 --> C8[Limité à 256 couleurs]
+ B4 --> C9[Adapté aux images animées simples]
+ B5 --> C10[Supporte 8, 16, 24 et 32 bits]
+ B5 --> C11[Utilisé pour les textures 3D]
 ```
 
-[🔝 Retour en haut de page](#table-des-matières)
+[ Retour en haut de page](#table-des-matières)
 
 ---
 
@@ -914,7 +1109,7 @@ Les **ombres** sont des zones où la lumière est bloquée par un objet. Elles a
 3. **Ombres douces** (*Soft shadows*) : ombres qui présentent un flou progressif en s'éloignant de l'objet qui les projette. On simule plusieurs sources de lumière proches les unes des autres, ou on utilise des techniques de filtrage pour adoucir les bords des ombres portées.
 4. **Ray tracing** : technique de rendu avancée qui simule le comportement de la lumière en traçant des rayons depuis la caméra jusqu'à la source de lumière, en prenant en compte les **réflexions** et les **réfractions**. Permet de générer des ombres, des reflets et des effets de lumière globale très réalistes — mais coûteux en temps de calcul. De plus en plus utilisé dans les jeux vidéo grâce à l'évolution des cartes graphiques et des algorithmes de rendu.
 
-[🔝 Retour en haut de page](#table-des-matières)
+[ Retour en haut de page](#table-des-matières)
 
 ---
 
@@ -941,7 +1136,7 @@ Il existe plusieurs techniques de mappage UV :
 3. **Mappage sphérique** : projette la texture sur l'objet 3D à partir d'une sphère. Fonctionne bien pour les objets sphériques, mais peut provoquer des distorsions aux pôles.
 4. **Mappage par morceaux** (*UV unwrapping*) : on découpe l'objet 3D en morceaux, puis on les déplie en 2D pour créer une représentation plane de l'objet. Cette technique permet de minimiser les distorsions, mais nécessite généralement un travail manuel minutieux pour obtenir de bons résultats.
 
-[🔝 Retour en haut de page](#table-des-matières)
+[ Retour en haut de page](#table-des-matières)
 
 ---
 
@@ -987,7 +1182,7 @@ Cette technique est particulièrement utile pour les animations interactives —
 
 La cinématique inverse implique généralement la résolution d'un **système d'équations non linéaires** décrivant les positions et les orientations des nœuds de l'armature. Les algorithmes les plus connus sont **CCD** (*Cyclic Coordinate Descent*) et **FABRIK** (*Forward And Backward Reaching Inverse Kinematics*).
 
-[🔝 Retour en haut de page](#table-des-matières)
+[ Retour en haut de page](#table-des-matières)
 
 ---
 
@@ -999,33 +1194,55 @@ Les principales composantes de la physique des jeux incluent la simulation physi
 
 ### Simulation physique
 
-La simulation physique implique le calcul des **mouvements** et des **forces** qui agissent sur les objets dans un monde virtuel. Les mouvements sont généralement basés sur les lois fondamentales de la mécanique classique, comme la **deuxième loi de Newton** :
+La simulation physique calcule les **mouvements** et les **forces** qui agissent sur les objets. Le point de départ reste la **deuxième loi de Newton** :
 
 ```math
-F = m \times a
+\mathbf{F} = m\,\mathbf{a}
 ```
 
-où $F$ est la force, $m$ est la masse de l'objet et $a$ est son accélération.
-
-Les forces peuvent inclure la **gravité**, les **forces de contact**, les **forces de frottement** et d'autres forces externes. L'accélération d'un objet est calculée en fonction de la somme des forces qui agissent sur lui :
+où $\mathbf{F}$ est la résultante des forces (vecteur), $m$ la masse de l'objet (scalaire) et $\mathbf{a}$ son accélération (vecteur). Les forces peuvent inclure la gravité, les forces de contact, le frottement, et d'autres forces externes ; l'accélération s'obtient en sommant l'ensemble :
 
 ```math
-a = \frac{\sum F}{m}
+\mathbf{a} = \frac{1}{m}\sum_i \mathbf{F}_i
 ```
 
-Ensuite, la position et la vitesse de l'objet sont mises à jour en fonction de son accélération (intégration d'**Euler explicite**, la plus simple) :
+Position et vitesse sont ensuite intégrées dans le temps. La méthode la plus simple, l'**Euler explicite**, s'écrit :
 
 ```math
-v_{t+1} = v_t + a \times \Delta t
+\mathbf{v}_{t+1} = \mathbf{v}_t + \mathbf{a}\,\Delta t
 ```
 
 ```math
-p_{t+1} = p_t + v_{t+1} \times \Delta t
+\mathbf{p}_{t+1} = \mathbf{p}_t + \mathbf{v}_{t+1}\,\Delta t
 ```
 
-où $v_t$ et $p_t$ sont la vitesse et la position de l'objet à l'instant $t$, et $\Delta t$ est le pas de temps de la simulation.
+où $\Delta t$ est le pas de temps. Euler explicite gagne en simplicité ce qu'il perd en stabilité : sur de longues simulations, il introduit une dérive énergétique (les ressorts gagnent de l'énergie, les orbites s'écartent). On lui préfère :
 
-> 💡 Pour une simulation plus stable, on préfère souvent l'**intégration de Verlet** ou des intégrateurs **semi-implicites** (*semi-implicit Euler*), qui se comportent mieux sur de longues simulations.
+- **Euler semi-implicite** (*symplectic Euler*) : on met à jour la vitesse **avant** la position (`v += a*dt; p += v*dt`). Conserve l'énergie sur les systèmes oscillants. **Le défaut par défaut** dans la plupart des moteurs de jeu.
+- **Verlet** (notamment *velocity Verlet*) : exact à l'ordre 2, conserve très bien l'énergie. Utilisé par les moteurs de cloth et de soft-body.
+- **Runge-Kutta 4 (RK4)** : très précis mais coûteux ; utilisé en simulation aérospatiale ou physique éducative, rarement dans les jeux temps réel.
+
+#### Pas de simulation fixe ≠ pas de frame
+
+C'est *le* piège du game-dev débutant : faire l'intégration physique avec le `Δt` de la frame courante (variable selon la machine). Conséquences :
+
+1. **Comportement non déterministe** : le même replay donne des résultats différents sur deux machines parce que les `dt` ne sont pas identiques.
+2. **Tunneling** : un objet rapide traverse un mur si la frame est lente, parce que `position += velocity * dt` saute par-dessus la collision.
+3. **Instabilité numérique** : les ressorts et contraintes de constantes physiques calculées pour un `dt = 16ms` explosent quand la frame chute à `60ms`.
+
+La solution canonique (Glenn Fiedler, [*"Fix Your Timestep"*](https://gafferongames.com/post/fix_your_timestep/)) :
+
+```text
+fixedDt   = 1/60               // pas de simulation, constant
+accumulator += frameDelta      // temps réel écoulé depuis la dernière frame
+while accumulator >= fixedDt:
+ physicsStep(fixedDt)       // itération à pas constant, déterministe
+ accumulator -= fixedDt
+alpha = accumulator / fixedDt
+render(state, alpha)           // interpolation visuelle pour la fluidité
+```
+
+C'est exactement ce que fait Unity (`FixedUpdate`), Unreal (`PhysicsTickRate`), Godot (`_physics_process`). Le rendu peut tourner à 144 Hz, la physique reste à 60 Hz fixe.
 
 ### Détection de collision
 
@@ -1088,7 +1305,7 @@ A(Impulsion) -->|Modifie les vitesses| B(Résolution de collision)
 C(Correction de position) -->|Évite les chevauchements| B
 ```
 
-[🔝 Retour en haut de page](#table-des-matières)
+[ Retour en haut de page](#table-des-matières)
 
 ---
 
@@ -1098,54 +1315,146 @@ Les jeux vidéo utilisent souvent l'**intelligence artificielle** (IA) pour cont
 
 ### Comportement de base
 
-Les comportements de base des PNJ peuvent être modélisés à l'aide de **machines à états finis** (FSM) ou d'**arbres de comportement** (*Behavior Trees*).
+> **PNJ** = *Personnage Non Joueur*. Tout ce qui bouge à l'écran sans que vous teniez la manette : ennemis, alliés, marchands, civils. Le code qui décide ce qu'ils font à chaque instant, c'est l'IA du jeu.
 
-- Les **FSM** représentent l'état actuel d'un PNJ et les transitions entre les différents états en fonction des conditions du jeu (par exemple : *patrouille → poursuite → attaque*).
-- Les **arbres de comportement** sont des structures hiérarchiques qui déterminent le comportement d'un PNJ en fonction de l'évaluation des conditions à chaque niveau de l'arbre. Ils sont plus modulaires et réutilisables que les FSM.
+Les comportements de base des PNJ peuvent être modélisés via plusieurs paradigmes, du plus simple au plus expressif :
+
+#### Machines à états finis (FSM)
+
+> **FSM** = *Finite State Machine* — machine à états finis. Le PNJ a un état courant (ex. *patrouille*, *poursuite*, *attaque*) et des **transitions** déclenchées par des événements (*"j'ai vu le joueur"*, *"j'ai perdu de vue le joueur"*). À chaque tick, on exécute le code de l'état courant, et on évalue les transitions.
 
 ```mermaid
-graph TD
-A(Machine à états finis) -- Modélise les comportements --> B(PNJ)
-C(Arbres de comportement) -- Modélise les comportements --> B
+stateDiagram-v2
+ [*] --> Patrouille
+ Patrouille --> Poursuite: joueur visible
+ Poursuite --> Attaque: joueur à portée
+ Poursuite --> Patrouille: joueur perdu
+ Attaque --> Poursuite: joueur hors portée
+ Attaque --> Mort: PV ≤ 0
+ Mort --> [*]
 ```
+
+**Avantages** : trivial à implémenter, déterministe, débogable.
+
+**Limites** : explosion combinatoire dès qu'on a plusieurs orthogonalités (état d'arme × état de mouvement × état d'humeur = $n_1 \times n_2 \times n_3$ états explicites). Au-delà de ~10 états, les FSM deviennent illisibles.
+
+#### Arbres de comportement (Behavior Trees)
+
+Inventés pour *Halo 2* (2004) puis popularisés par *Spore*, les **Behavior Trees** (BT) remplacent les transitions explicites par une **structure hiérarchique** que l'on parcourt à chaque tick. Trois types de nœuds :
+
+- **Sequence** ($\rightarrow$) : exécute les enfants en ordre, **réussit** si tous réussissent, échoue dès qu'un échoue. Équivalent du *AND* logique.
+- **Selector** ($?$) : exécute les enfants en ordre, **réussit** dès qu'un réussit, échoue si tous échouent. Équivalent du *OR*.
+- **Leaf** : action concrète (`MoveTo`, `Attack`, `Wait(2s)`) ou condition (`PlayerVisible?`).
+
+Exemple — un garde "patrouille, et attaque s'il voit quelqu'un" :
+
+```text
+Selector (?)
+├── Sequence (→)        # priorité 1 : combat
+│   ├── PlayerVisible?
+│   ├── MoveTo(player)
+│   └── Attack(player)
+└── Sequence (→)        # priorité 2 : patrouille
+ ├── PickRandomWaypoint
+ └── MoveTo(waypoint)
+```
+
+L'avantage est la **composabilité** : on remplace `Attack` par `[Selector: ShootIfRanged, MeleeIfClose]` sans rien changer ailleurs. C'est ce qui motive son adoption dans Unreal (`BehaviorTree`), Unity (`Behavior Designer`), et tous les middleware AAA.
+
+#### Utility AI
+
+Plutôt que de hard-coder des transitions, l'**Utility AI** assigne une **fonction de score** à chaque action possible et choisit l'action de score maximal :
+
+```math
+\mathrm{score}(action) = \prod_{i} f_i(\text{contexte})
+```
+
+où chaque $f_i \in [0, 1]$ est une **considération** (distance au joueur, niveau de PV, présence de couvert…). C'est l'approche utilisée dans *The Sims*, *XCOM*, *Hitman*. Plus organique que les BT pour les comportements émergents.
+
+#### GOAP — Goal-Oriented Action Planning
+
+Pour les comportements vraiment intelligents (*F.E.A.R.* en 2005, encore référence), l'IA fait littéralement de la **planification** : étant donné un état initial, un état but (« joueur mort »), et un catalogue d'actions avec **préconditions** et **effets**, GOAP cherche la séquence d'actions optimale via… **A\*** sur l'espace des états (voir section suivante).
 
 ### Navigation
 
-La **navigation** des PNJ dans un environnement de jeu nécessite la planification de chemins pour éviter les obstacles et atteindre les objectifs. Les algorithmes de planification de chemins tels que l'algorithme **A\*** sont couramment utilisés pour déterminer le chemin optimal entre deux points, en tenant compte des contraintes de l'environnement.
+La **navigation** des PNJ nécessite de **planifier un chemin** entre deux points en évitant les obstacles. L'algorithme de référence est **A\*** (« A étoile »), inventé en 1968 et toujours utilisé tel quel dans les moteurs modernes.
 
-L'algorithme A\* utilise une fonction d'évaluation :
+#### A\* — la fonction d'évaluation
+
+A\* explore un graphe (cases d'une grille, sommets d'un mesh de navigation, voire ECS d'actions GOAP) en évaluant à chaque nœud :
 
 ```math
 f(n) = g(n) + h(n)
 ```
 
-pour estimer le coût total du chemin passant par le nœud $n$, où :
+où :
 
-- $g(n)$ représente le coût réel pour atteindre le nœud $n$ depuis le nœud de départ ;
-- $h(n)$ est une **heuristique** qui estime le coût restant pour atteindre le nœud d'arrivée depuis le nœud $n$.
+- $g(n)$ est le **coût réel** déjà parcouru pour aller du départ à $n$ (somme des poids d'arêtes).
+- $h(n)$ est une **heuristique** : une *estimation* du coût restant entre $n$ et le but.
 
-L'algorithme A\* explore les nœuds ayant le coût total le plus faible en premier, garantissant la découverte du chemin optimal (à condition que l'heuristique soit **admissible**, c'est-à-dire qu'elle ne surestime jamais le coût réel).
+À chaque itération, A\* sort de la file de priorité le nœud de plus petit $f$, l'expand, et enregistre ses voisins.
 
-```mermaid
-graph LR
-A(Algorithme A*) -- Planifie les chemins --> B(Navigation)
+#### Pourquoi l'admissibilité de l'heuristique compte
+
+> **Heuristique admissible** : qui ne **surestime jamais** le coût réel restant. Formellement : $h(n) \le h^\ast(n)$ pour tout $n$, où $h^\ast(n)$ est le coût optimal réel entre $n$ et le but.
+
+**Théorème** : si $h$ est admissible, A\* trouve **toujours** le chemin optimal.
+
+*Idée de preuve* : supposons par l'absurde qu'A\* renvoie un chemin sous-optimal. Alors il existe au moins un nœud $n$ sur le chemin optimal qui est dans la frontière non explorée au moment où A\* termine. Pour ce $n$, on a $f(n) = g(n) + h(n) \le g(n) + h^\ast(n) = \text{coût optimal}$, donc $f(n) \le f(\text{but trouvé})$, ce qui contredit le fait qu'A\* a choisi le but trouvé en premier. ∎
+
+**Heuristiques classiques sur grille** :
+
+| Distance        | Formule                                                 | Admissible si déplacement                       |
+| --------------- | ------------------------------------------------------- | ----------------------------------------------- |
+| **Manhattan**   | $\lvert\Delta x\rvert + \lvert\Delta y\rvert$           | 4-connexe (haut/bas/gauche/droite uniquement)   |
+| **Chebyshev**   | $\max(\lvert\Delta x\rvert, \lvert\Delta y\rvert)$      | 8-connexe avec coût uniforme                    |
+| **Octile**      | $\Delta_\text{max} + (\sqrt{2} - 1)\,\Delta_\text{min}$ | 8-connexe avec coût $\sqrt{2}$ en diagonal      |
+| **Euclidienne** | $\sqrt{\Delta x^2 + \Delta y^2}$                        | toujours (sous-estime sur graphe discret)       |
+
+> **Heuristique inadmissible** : A\* **trouve toujours** un chemin (s'il existe), mais pas forcément l'optimal. Volontairement, on utilise parfois une heuristique légèrement sur-estimante pour **accélérer** A\* au prix d'un peu d'optimalité — c'est *Weighted A\**.
+
+#### Optimisations courantes
+
+- **Hierarchical Pathfinding (HPA\*)** : on précalcule un graphe coarse (clusters de cases). On planifie d'abord à gros grain, puis on raffine à grain fin sur le segment courant. Indispensable au-delà de 1000×1000 cases.
+- **Jump Point Search (JPS)** : sur une grille uniforme 8-connexe, on saute directement aux points "intéressants", divisant le nombre de nœuds explorés par 10-100×.
+- **Theta\*** : variante qui autorise à "couper les coins" (any-angle), résultats visuellement plus naturels que les chemins en escalier.
+
+#### MCTS — Monte Carlo Tree Search
+
+Pour les jeux à grande arborescence (Go, certains RTS), A\* sur l'espace des états est intractable. **MCTS** (*Monte Carlo Tree Search*, 2006) explore l'arbre en quatre phases répétées :
+
+- **Selection.** On descend dans l'arbre depuis la racine en choisissant à chaque pas l'enfant qui maximise la formule **UCB1** (*Upper Confidence Bound*) :
+
+```math
+UCB1(n) = \frac{w_n}{v_n} + c\sqrt{\frac{\ln V_p}{v_n}}
 ```
+
+ où $w_n$ est le nombre de victoires depuis le nœud $n$, $v_n$ le nombre de visites, $V_p$ les visites du parent, et $c \approx \sqrt{2}$ règle l'arbitrage exploration ↔ exploitation.
+
+- **Expansion.** Si le nœud sélectionné n'est pas terminal, on ajoute un nouvel enfant non encore exploré.
+- **Simulation** (*rollout*). On joue ensuite la partie aléatoirement (ou avec une politique légère) jusqu'à la fin pour obtenir un résultat.
+- **Backpropagation.** On remonte le résultat dans l'arbre, mettant à jour $w$ et $v$ sur tous les nœuds visités.
+
+C'est l'algorithme qui a fait gagner **AlphaGo** contre Lee Sedol (2016, en combinaison avec un réseau de neurones d'évaluation de position).
 
 ### Apprentissage automatique
 
-L'**apprentissage automatique** peut également être utilisé pour améliorer l'IA des jeux vidéo. Les **réseaux de neurones artificiels** (ANN) sont une méthode populaire pour modéliser les comportements complexes des PNJ et des systèmes de jeu.
+> **Réseau de neurones (NN)** : un graphe de calcul composé de **couches** d'unités élémentaires (neurones) qui transforment leurs entrées via une combinaison linéaire pondérée suivie d'une **fonction d'activation** non-linéaire (ReLU, sigmoid…). Les **poids** des connexions sont appris à partir de données par **rétropropagation du gradient**.
 
-Les ANN sont composés de **nœuds** (neurones) organisés en **couches**, et sont capables d'apprendre des modèles à partir de données d'entrée en ajustant les poids des connexions entre les neurones.
+Trois grands paradigmes en jeu vidéo :
 
-Les algorithmes d'**apprentissage par renforcement**, tels que **Q-learning** et **Deep Q-Network (DQN)**, sont particulièrement adaptés aux jeux vidéo, car ils permettent aux agents d'apprendre des **politiques optimales** en interagissant avec l'environnement de jeu.
+- **Apprentissage supervisé** : on entraîne le réseau à imiter une cible. Utilisé pour la reconnaissance de gestes via Kinect, la transcription speech-to-text dans le chat in-game.
+- **Apprentissage par renforcement (RL)** : l'agent apprend une **politique** $\pi(s) \to a$ qui maximise une **récompense cumulée** $\sum_t \gamma^t r_t$. Algorithmes connus : Q-learning, **DQN** (DeepMind sur Atari, 2015), **PPO** (OpenAI Five sur Dota 2, 2018), **AlphaZero** (DeepMind, échecs/Go/shogi, 2017). $\gamma \in [0, 1[$ est le **facteur d'actualisation** : il pénalise les récompenses lointaines pour les rendre comparables.
+- **Modèles génératifs** (LLM, diffusion) : génération de dialogues, de quêtes ou de textures à la volée. Encore expérimental côté production, prometteur pour le contenu procédural narratif (*AI Dungeon*, *Inworld AI* dans *Mecha BREAK*).
 
-```mermaid
-graph LR
-A(Réseaux de neurones) -- Modélise les comportements --> B(IA des jeux vidéo)
-C(Apprentissage par renforcement) -- Apprend des politiques optimales --> B
+```math
+Q(s, a) \leftarrow Q(s, a) + \alpha\,\Big[r + \gamma \max_{a'} Q(s', a') - Q(s, a)\Big]
+\quad\text{(mise à jour de Bellman, Q-learning)}
 ```
 
-[🔝 Retour en haut de page](#table-des-matières)
+> **Le RL fonctionne brillamment dans des environnements simulables**. Pour les jeux multijoueurs en ligne, on n'utilise quasi jamais du RL temps réel : le coût d'inférence + le risque de comportements aberrants sont prohibitifs. Le RL sert plutôt à **entraîner** des politiques offline, qu'on **distille** ensuite en arbres de décision ou tables de lookup pour le runtime (technique utilisée par *Forza Motorsport* pour le drivatar).
+
+[ Retour en haut de page](#table-des-matières)
 
 ---
 
@@ -1188,22 +1497,79 @@ Les jeux en réseau utilisent différents protocoles de communication pour écha
 - **UDP** (*User Datagram Protocol*) : protocole de communication **sans connexion** et **sans garantie** de livraison. Généralement utilisé dans les jeux en temps réel en raison de sa faible **latence**. Cependant, les paquets de données peuvent être perdus ou arriver dans le désordre, ce qui nécessite une gestion supplémentaire (numéros de séquence, retransmissions sélectives) de la part du programme de jeu.
 - **TCP** (*Transmission Control Protocol*) : protocole de communication **orienté connexion** avec **garantie** de livraison. Il garantit que les paquets de données sont livrés dans l'ordre et sans erreurs. Généralement utilisé pour les communications non critiques pour le temps, telles que le chat en jeu, la mise à jour des classements ou le téléchargement d'assets.
 
-> 💡 De plus en plus de jeux modernes utilisent **WebRTC** ou **QUIC** (basé sur UDP), qui combinent fiabilité, faible latence et chiffrement.
+> De plus en plus de jeux modernes utilisent **WebRTC** ou **QUIC** (basé sur UDP), qui combinent fiabilité, faible latence et chiffrement.
 
 #### Synchronisation et latence
 
-Pour qu'un jeu multijoueur reste fluide malgré le réseau, plusieurs techniques sont utilisées :
+ **Vocabulaire de base :**
 
-- **Client-side prediction** : le client simule immédiatement les actions du joueur sans attendre la réponse du serveur, puis corrige si le serveur est en désaccord.
-- **Server reconciliation** : le client conserve un historique de ses entrées et rejoue les inputs après une correction du serveur.
-- **Lag compensation** : le serveur tient compte de la latence de chaque joueur pour valider les actions (par exemple, un tir « dans le passé » dans un FPS).
-- **Interpolation / extrapolation** : on interpole entre les états reçus du serveur (interpolation) ou on extrapole pour combler les paquets manquants (extrapolation).
+- **RTT** (*Round-Trip Time*) : temps aller-retour d'un paquet entre client et serveur (typiquement 30-150 ms en jeu compétitif).
+- **Tick rate** : fréquence à laquelle le serveur calcule un nouvel état (Counter-Strike 2 = 64 Hz, Valorant = 128 Hz).
+- **Snapshot** : un état complet du monde envoyé du serveur aux clients à chaque tick (positions, animations, vies…).
+- **Input** : action du joueur (déplacement, tir) envoyée du client au serveur, à chaque frame.
 
-Mathématiquement, l'interpolation linéaire d'un état entre deux instants $t_0$ et $t_1$ s'exprime :
+Un jeu multijoueur typique tourne avec un client à 144 Hz qui parle à un serveur à 64 Hz, sur un réseau qui ajoute 50 ms de latence et perd 1 % des paquets. Naïvement, ça produit un jeu injouable. Quatre techniques essentielles le rendent fluide :
+
+##### 1. Snapshot interpolation (côté client, pour les autres joueurs)
+
+Le client n'affiche **pas** la dernière position reçue : il **retarde volontairement** son rendu de quelques snapshots et **interpole** entre deux snapshots passés. Cela donne un mouvement fluide même quand un paquet manque.
 
 ```math
-S(t) = (1 - \alpha) \cdot S_0 + \alpha \cdot S_1, \quad \alpha = \frac{t - t_0}{t_1 - t_0}
+S(t) = (1 - \alpha)\,S_0 + \alpha\,S_1
+\qquad
+\alpha = \frac{t - t_0}{t_1 - t_0}
 ```
+
+où $S_0, S_1$ sont les deux snapshots qui encadrent le temps $t$. La règle pratique est de retarder de **2× la période du tick rate** : sur un serveur 64 Hz, on rend les autres joueurs avec 30 ms de retard. *Counter-Strike*, *Valorant*, *Overwatch* font tous ça.
+
+##### 2. Client-side prediction (côté client, pour soi-même)
+
+On ne peut pas attendre l'aller-retour serveur pour bouger son propre personnage : à 100 ms RTT, ça donnerait l'impression d'un input lag insupportable. La technique :
+
+1. Le client **simule immédiatement** l'effet de son input.
+2. Il **mémorise l'input avec son numéro de séquence** $n$.
+3. Quand le serveur renvoie son state autoritaire avec le numéro $n$, le client **compare** :
+ - Si l'état serveur correspond, RAS.
+ - Sinon (ping-pong, collision contestée), le client **corrige sa position** et **rejoue tous les inputs postérieurs** $n+1, n+2, \dots$ — c'est la **reconciliation**.
+
+```python
+# Pseudocode côté client
+inputs = []   # historique des inputs envoyés
+for input_n at tick t:
+ state.apply(input_n)         # prédiction immédiate
+ inputs.append((t, input_n))
+ send_to_server(t, input_n)
+
+on receive (server_state, server_acked_tick):
+ state = server_state          # rebase sur l'état autoritaire
+ for (t, i) in inputs if t > server_acked_tick:
+ state.apply(i)             # rejouer la queue
+ inputs = inputs[server_acked_tick+1:]
+```
+
+C'est la technique fondatrice de Quake World (1996, John Carmack). Toujours utilisée presque telle quelle.
+
+##### 3. Lag compensation (côté serveur, pour les hits)
+
+Quand un joueur tire, le serveur reçoit l'input avec un délai $\Delta = \text{RTT}/2 + t_\text{interp}$. Si le serveur valide le tir contre les positions actuelles, le joueur a déjà raté la cible (la cible a bougé pendant $\Delta$). Solution : le serveur **rembobine** le monde de $\Delta$ et vérifie le hit dans le passé.
+
+```math
+\Delta_\text{rewind} = \frac{\text{RTT}_\text{client}}{2} + t_\text{interpolation}
+```
+
+Le serveur garde un buffer circulaire des dernières snapshots (~1 s d'historique). C'est ce qui produit l'effet "j'ai été tué après m'être caché derrière le mur" : du point de vue du tireur, il vous voyait encore exposé.
+
+##### 4. Lockstep déterministe (alternative aux snapshots)
+
+Pour les RTS (*Age of Empires*, *StarCraft*, *Factorio*), envoyer 200 unités de positions à chaque tick est trop cher. À la place :
+
+- Tous les clients démarrent avec la **même seed** et le **même état initial**.
+- À chaque tick, tous les clients reçoivent **uniquement les inputs de tous les joueurs** (volume négligeable).
+- Chaque client simule la totalité de la partie de manière **bit-exact**.
+
+Pour que ça marche, **toute** la simulation doit être déterministe : pas de `Random` non-seedé, pas de comparaison d'adresses mémoire, pas d'arithmétique flottante non-déterministe (selon l'ordre d'exécution). Les RTS modernes (*Factorio*, *Age of Empires II Definitive*) utilisent même de l'**arithmétique en virgule fixe** pour éviter les divergences entre CPUs.
+
+> **Le piège du flottant en lockstep.** L'instruction `x87` du x86 vs SSE vs ARM ne donnent pas les mêmes derniers bits sur `sin()`, `sqrt()`. Sur un FPS classique on s'en fiche. En lockstep, deux clients divergent en quelques minutes et la partie devient injouable. Solution : compiler avec `--ffast-math` désactivé, utiliser une lib math soft-float croisée comme `softfloat`, ou rester en virgule fixe.
 
 ### Programmation de jeu multijoueur
 
@@ -1213,7 +1579,9 @@ Pour gérer ces problèmes, les développeurs peuvent utiliser des bibliothèque
 
 Les développeurs doivent également implémenter des mécanismes pour gérer les **déconnexions** de joueurs, les **tricheurs** et les **attaques par déni de service**.
 
-[🔝 Retour en haut de page](#table-des-matières)
+> **Lecture obligatoire** : ["What Every Programmer Needs To Know About Game Networking"](https://gafferongames.com/post/what_every_programmer_needs_to_know_about_game_networking/) de Glenn Fiedler. Court, dense, applicable.
+
+[ Retour en haut de page](#table-des-matières)
 
 ---
 
@@ -1225,58 +1593,74 @@ Cette section regroupe quelques **techniques avancées** que l'on retrouve dans 
 
 La **génération procédurale** consiste à produire du contenu (terrain, textures, niveaux, biomes…) à partir d'algorithmes plutôt que manuellement. Elle s'appuie largement sur des **fonctions de bruit** déterministes, c'est-à-dire des fonctions qui retournent toujours la même valeur pour une même entrée mais qui semblent aléatoires.
 
+> **Qu'est-ce qu'un "bruit" en programmation graphique ?** Pas un son. C'est juste une **fonction mathématique** $f(x, y)$ qui, pour chaque coordonnée du plan (ou de l'espace), retourne une valeur "désordonnée mais reproductible". On les dessine en niveau de gris (`f(x, y)` → noir si bas, blanc si haut). On dit que le bruit est **déterministe** parce que `f(3, 5)` retourne toujours la même chose, et **continu** quand on peut zoomer dessus sans voir d'arêtes franches. On les utilise pour générer des terrains, des textures, des dispositions d'objets, qui ont l'air "naturels" parce que la nature elle-même est faite de variations continues.
+
 #### Bruit blanc
 
-Le bruit le plus simple : à chaque coordonnée entière, on associe une valeur pseudo-aléatoire indépendante :
+> **Définition.** Le **bruit blanc** est le bruit le plus simple : à chaque case entière, une valeur indépendante des voisines. Le nom vient de l'analogie avec la *lumière blanche* (qui contient toutes les fréquences avec la même intensité) et le **son blanc** (le sifflement statique d'une radio mal réglée). Visuellement, c'est ce qu'on voit sur la "neige" d'une vieille télé : chaque pixel est tiré au sort sans aucun lien avec ses voisins.
+
+Formellement :
 
 ```math
 N_\text{blanc}(x, y) = \mathrm{hash}(x, y) \in [0, 1]
 ```
 
-Le bruit blanc est trop discontinu pour modéliser un terrain — chaque pixel est indépendant.
+> **Pourquoi c'est inutilisable seul.** Comme chaque pixel est indépendant, deux pixels voisins peuvent avoir des valeurs totalement différentes. Si on l'utilisait pour un terrain, le sol monterait à 100 m puis redescendrait à 0 d'un mètre à l'autre — injouable. Le bruit blanc sert d'**ingrédient de base** dans des constructions plus sophistiquées (bruit de valeur, bruit fractal) qui le **lissent**.
 
 #### Bruit de Perlin
 
-Le **bruit de Perlin** (Ken Perlin, 1983 — Oscar 1997 pour son apport) génère une fonction **continue et lisse** qui semble naturelle. Pour un point $(x, y)$ :
+> **Définition.** Le **bruit de Perlin** est une fonction continue et lisse, inventée par **Ken Perlin** en 1983 pour générer les textures du film *Tron*. Elle ressemble à un terrain vu de dessus : des vallées et des collines qui se succèdent sans cassure. Perlin a reçu un Oscar technique en 1997 pour son invention. Aujourd'hui, *Minecraft*, *No Man's Sky*, *Terraria* et la quasi-totalité des jeux à monde ouvert reposent sur Perlin (ou son successeur Simplex).
+
+L'idée intuitive : on découpe l'espace en une grille de cellules entières. À chaque sommet de la grille, on stocke un **vecteur gradient** pseudo-aléatoire (une direction). Quand on demande la valeur en un point $(x, y)$ quelconque, on combine les contributions des 4 sommets de la cellule qui contient le point, en les pondérant selon la position relative dans la cellule.
+
+Concrètement, pour un point $(x, y)$ :
 
 1. Trouver la cellule entière qui contient $(x, y)$ ;
-2. Pour chaque coin de la cellule, calculer un **gradient pseudo-aléatoire** ;
+2. Pour chaque coin de la cellule, lire (ou calculer par hachage) un **gradient pseudo-aléatoire** ;
 3. Calculer le produit scalaire entre le gradient et le vecteur du coin vers $(x, y)$ ;
-4. **Interpoler** ces produits scalaires avec une fonction d'easing (typiquement `smootherstep`).
+4. **Interpoler** ces produits scalaires avec une fonction d'easing (typiquement `smootherstep` — voir le chapitre Easing pour le pourquoi).
 
 ```math
 \mathrm{smootherstep}(t) = 6t^5 - 15t^4 + 10t^3
 ```
 
-Le bruit de Simplex (Perlin, 2001) est une amélioration : moins coûteux en haute dimension, moins d'artefacts directionnels.
+> **Bruit de Simplex** (Perlin, 2001) : amélioration directe, qui utilise une grille triangulaire/tétraédrique au lieu d'une grille carrée/cubique. Avantages : moins de calculs en haute dimension (3D, 4D), moins d'artefacts directionnels (pas de "rails" alignés sur les axes). Inconvénient : un brevet historique de Perlin a longtemps freiné son adoption ; aujourd'hui le brevet est expiré et OpenSimplex / OpenSimplex2 sont les implémentations libres de référence.
 
 #### Bruit fractal (FBM — *Fractional Brownian Motion*)
 
-En sommant plusieurs octaves d'un bruit, chaque octave ayant une fréquence deux fois plus élevée et une amplitude deux fois plus faible que la précédente, on obtient un terrain réaliste :
+> **Définition.** **FBM** signifie *Fractional Brownian Motion* — mouvement brownien fractionnaire. C'est l'analogue mathématique du mouvement aléatoire d'une particule en suspension (Robert Brown, 1827), mais corrélé sur plusieurs échelles. En pratique : un terrain a des montagnes, des collines sur ces montagnes, des rochers sur ces collines, des cailloux sur ces rochers — *des détails à toutes les échelles*. La FBM reproduit ça en superposant plusieurs couches du même bruit, chacune deux fois plus fine et deux fois moins forte que la précédente. Le résultat ressemble à un vrai paysage.
 
 ```math
 \mathrm{FBM}(x, y) = \sum_{i=0}^{N-1} \frac{1}{2^i} \cdot \mathrm{noise}\!\big(2^i \cdot x,\ 2^i \cdot y\big)
 ```
 
+Chaque terme s'appelle une **octave** (terme musical : doubler la fréquence revient à monter d'une octave). Avec 4-6 octaves on obtient un terrain crédible.
+
 #### Applications
 
-- **Heightmap de terrain** : Minecraft, *No Man's Sky*, *Terraria* utilisent du bruit fractal.
-- **Textures procédurales** : marbre, bois, nuages, eau.
-- **Distribution d'objets** : placement d'arbres, de rochers.
-- **Donjons et niveaux** : algorithmes BSP, Wave Function Collapse, marche aléatoire.
+- **Heightmap de terrain** : Minecraft, *No Man's Sky*, *Terraria* utilisent du bruit fractal pour générer la carte d'élévation du sol.
+- **Textures procédurales** : marbre, bois, nuages, eau — le motif "fibreux" d'un tronc vient d'une FBM filtrée.
+- **Distribution d'objets** : seuiller un bruit ($N(x, y) > 0{,}7$ → "pose un arbre ici") donne des forêts naturelles, sans agglomérats.
+- **Donjons et niveaux** : on utilise plutôt des algorithmes spécialisés.
+
+**Lexique des algos de génération de niveau :**
+
+- **BSP** (*Binary Space Partitioning*) : on découpe une zone en deux sous-zones, récursivement, jusqu'à obtenir des pièces. Utilisé par *Rogue* (1980) et la quasi-totalité des roguelikes.
+- **Wave Function Collapse** (Maxim Gumin, 2016) : algorithme inspiré de la physique quantique où chaque case "choisit" un motif compatible avec ses voisines. Donne des résultats étonnamment cohérents à partir d'un simple échantillon.
+- **Marche aléatoire** (*random walk*) : un agent virtuel se déplace au hasard et creuse les cases qu'il visite. Donne des cavernes organiques.
 
 ```csharp
 float Terrain(float x, float z)
 {
-    float h = 0f;
-    float amplitude = 1f, frequency = 0.01f;
-    for (int i = 0; i < 5; i++)
-    {
-        h += amplitude * Mathf.PerlinNoise(x * frequency, z * frequency);
-        amplitude *= 0.5f;
-        frequency *= 2f;
-    }
-    return h;
+ float h = 0f;
+ float amplitude = 1f, frequency = 0.01f;
+ for (int i = 0; i < 5; i++)
+ {
+ h += amplitude * Mathf.PerlinNoise(x * frequency, z * frequency);
+ amplitude *= 0.5f;
+ frequency *= 2f;
+ }
+ return h;
 }
 ```
 
@@ -1308,21 +1692,122 @@ L'**intelligence artificielle avancée** dans les jeux vidéo englobe des techni
 
 Les développeurs de jeux peuvent utiliser des bibliothèques et des frameworks d'IA spécifiques pour implémenter ces fonctionnalités, comme **TensorFlow**, **PyTorch**, **ONNX Runtime** ou les API d'**OpenAI**. Ces outils permettent d'entraîner des modèles d'apprentissage profond pour la reconnaissance d'image, la génération de texte, la synthèse vocale et d'autres tâches complexes.
 
-> 💡 De plus en plus de jeux intègrent des **modèles génératifs** (LLM, diffusion) pour produire dialogues, missions ou textures à la volée.
+> De plus en plus de jeux intègrent des **modèles génératifs** (LLM, diffusion) pour produire dialogues, missions ou textures à la volée.
 
 ### Rendu avancé
 
-Le **rendu avancé** dans les jeux vidéo englobe un large éventail de techniques pour améliorer la **qualité visuelle** et la **performance** du rendu. Parmi ces techniques :
+Le **rendu avancé** englobe les techniques modernes qui rapprochent l'image générée de la photographie. Cette sous-section les présente et donne, pour chacune, **la math sous-jacente** quand il y en a — pas juste le nom commercial.
 
-- **Rendu basé sur la physique (PBR)** : approche de rendu qui simule la façon dont la lumière interagit avec les matériaux de manière réaliste. Elle utilise des modèles d'éclairage et de réflexion basés sur des mesures physiques pour générer des images plus fidèles à la réalité. Les paramètres clés sont l'**albedo**, la **métallicité**, la **rugosité** et la **normale**.
-- **Occlusion ambiante** (*Ambient Occlusion*) : simule l'obscurcissement de la lumière ambiante dans les coins et les recoins d'une scène. Cette technique ajoute de la profondeur et du réalisme aux scènes en renforçant les détails géométriques et les ombres. Variantes : **SSAO**, **HBAO**, **GTAO**.
-- **Tessellation** : subdivise les maillages en polygones plus petits pour améliorer la qualité des détails à proximité du spectateur. Cette technique peut être utilisée en combinaison avec le ***displacement mapping*** pour créer des surfaces extrêmement détaillées sans sacrifier les performances.
-- **Ray tracing** : simule la trajectoire des rayons de lumière pour générer des images réalistes avec des **réflexions**, des **réfractions** et des **ombres** précises. Bien que cette technique soit très coûteuse en termes de performances, l'émergence de matériel spécialisé — comme les GPU compatibles avec le ray tracing en temps réel (RTX, RDNA 2/3, Apple Silicon) — a rendu cette technologie plus accessible.
-- **Path tracing** : extension du ray tracing qui suit aussi les rebonds indirects de la lumière pour produire un éclairage global complet (utilisé dans *Cyberpunk 2077: Path Tracing*, *Quake II RTX*, etc.).
-- **Global illumination** (illumination globale) : technique qui simule la façon dont la lumière se propage et rebondit dans une scène pour produire un éclairage indirect réaliste. Plusieurs méthodes : **lightmaps précalculées**, approches basées sur les **voxels** (*VXGI*), approches basées sur les **sondes de lumière** (*Light Probes*, *DDGI*) ou Lumen (Unreal Engine 5).
-- **Upscaling temporel** : techniques comme **DLSS** (NVIDIA), **FSR** (AMD) ou **XeSS** (Intel) qui rendent l'image à une résolution interne réduite puis la reconstruisent en haute résolution à l'aide d'un réseau de neurones ou d'algorithmes temporels.
+#### Rendu basé sur la physique (PBR) et l'équation de rendu
 
-[🔝 Retour en haut de page](#table-des-matières)
+> **PBR** = *Physically-Based Rendering*. Au lieu d'inventer des modèles d'éclairage à la louche (Phong, Lambert), on part de l'équation physique vraie qui décrit comment la lumière interagit avec une surface, puis on approxime intelligemment.
+
+L'**équation de rendu** (Kajiya, 1986) décrit, pour une surface au point $\mathbf{x}$, la lumière sortante dans la direction $\boldsymbol{\omega}_o$ :
+
+```math
+L_o(\mathbf{x}, \boldsymbol{\omega}_o) = L_e(\mathbf{x}, \boldsymbol{\omega}_o) + \int_{\Omega} f_r(\mathbf{x}, \boldsymbol{\omega}_i, \boldsymbol{\omega}_o)\,L_i(\mathbf{x}, \boldsymbol{\omega}_i)\,(\boldsymbol{\omega}_i \cdot \mathbf{n})\,\mathrm{d}\boldsymbol{\omega}_i
+```
+
+où :
+
+- $L_e$ est l'émission propre de la surface (matériau lumineux, écran).
+- $L_i$ est la lumière incidente venue de la direction $\boldsymbol{\omega}_i$.
+- $f_r$ est la **BRDF** (*Bidirectional Reflectance Distribution Function*) : combien de la lumière entrant par $\boldsymbol{\omega}_i$ ressort vers $\boldsymbol{\omega}_o$.
+- $\boldsymbol{\omega}_i \cdot \mathbf{n}$ est le **terme de Lambert** : un faisceau qui frappe la surface à 45° apporte moins d'énergie au m² qu'un faisceau perpendiculaire.
+- $\Omega$ est l'hémisphère au-dessus de la surface.
+
+L'intégrale est insolvable analytiquement → on l'approxime. Les jeux temps réel utilisent une **BRDF Cook-Torrance microfacets** :
+
+```math
+f_r = \underbrace{\frac{c_\text{diff}}{\pi}}_\text{Lambertien} + \underbrace{\frac{D \cdot F \cdot G}{4\,(\boldsymbol{\omega}_o \cdot \mathbf{n})\,(\boldsymbol{\omega}_i \cdot \mathbf{n})}}_\text{Spéculaire microfacets}
+```
+
+avec :
+
+- **D — distribution des normales** (GGX/Trowbridge-Reitz, le standard depuis ~2014) : décrit la "rugosité" perceptuelle de la surface.
+- **F — Fresnel** (Schlick) : plus on regarde une surface en rasant, plus elle réfléchit comme un miroir. C'est ce qui fait briller le bord d'une bouteille.
+- **G — masquage / ombrage** (Smith) : sur une surface très rugueuse, certaines microfacettes sont cachées par d'autres.
+
+ **Paramètres PBR exposés à l'artiste.** Ce qu'on lui demande de peindre dans des textures :
+
+- **Albedo** (RGB) : la couleur de base (sans aucune lumière).
+- **Metallic** ($\in [0, 1]$) : 0 = diélectrique (bois, peau, peinture), 1 = métal pur (or, fer poli).
+- **Roughness** ($\in [0, 1]$) : 0 = miroir, 1 = surface mate parfaitement diffuse.
+- **Normal map** (RGB encodant un vecteur 3D) : perturbe la normale géométrique pour simuler des micro-bosses sans ajouter de polygones.
+
+Avec ces 4 paramètres, on reproduit fidèlement 95 % des matériaux du monde physique (peau, métal, plastique, tissu, vitre, eau…). C'est ce qui rend les jeux modernes interopérables : un asset Substance Painter charge directement dans Unity, Unreal et Blender sans retravail.
+
+#### Occlusion ambiante (*Ambient Occlusion*, AO)
+
+Approximation peu coûteuse de l'éclairage indirect : on assombrit les zones où la lumière ambiante peinerait à pénétrer (coins, replis). L'**AO** estime un facteur $A(\mathbf{x}) \in [0, 1]$ multiplicatif :
+
+```math
+A(\mathbf{x}) = \frac{1}{\pi} \int_{\Omega} V(\mathbf{x}, \boldsymbol{\omega})\,(\boldsymbol{\omega} \cdot \mathbf{n})\,\mathrm{d}\boldsymbol{\omega}
+```
+
+où $V \in \{0, 1\}$ est la **visibilité** dans la direction $\boldsymbol{\omega}$ (1 si rien ne bloque, 0 sinon). En temps réel on en fait une approximation en screen-space :
+
+- **SSAO** (*Screen-Space Ambient Occlusion*, Crytek 2007) : sample le depth buffer autour de chaque pixel.
+- **HBAO** (*Horizon-Based*, NVIDIA 2008) : raffinement angulaire, plus précis.
+- **GTAO** (*Ground-Truth*, 2016) : référence actuelle, presque indistinguable d'un rendu offline.
+
+#### Tessellation et displacement mapping
+
+> **Tessellation** : subdiviser dynamiquement un maillage en plus de triangles à l'approche du spectateur. **Displacement** : déplacer les nouveaux sommets selon une *heightmap* (texture en niveaux de gris) pour créer du vrai relief géométrique (et pas juste une normal map qui ment au rasterizer).
+
+Combinés, ils créent un terrain ou une muraille qui semble découpée au burin, sans payer le coût mémoire d'un mesh aussi détaillé. Le pipeline GPU (DX11+, OpenGL 4.0+) fournit deux étages dédiés : **Hull Shader** + **Domain Shader**.
+
+#### Ray tracing — le tracé de rayons
+
+> **Idée**. Au lieu de projeter des triangles puis d'éclairer chaque pixel a posteriori, on tire un rayon depuis la caméra à travers chaque pixel et on regarde **ce qu'il rencontre** dans la scène. C'est l'**inversion physique** de la propagation de la lumière (les vrais photons partent des sources, pas de l'œil).
+
+Pour un rayon $R(t) = \mathbf{O} + t\,\mathbf{D}$ et une sphère $\|\mathbf{P} - \mathbf{C}\|^2 = r^2$, l'intersection se résout par une simple équation du second degré :
+
+```math
+\|t\,\mathbf{D} + (\mathbf{O} - \mathbf{C})\|^2 = r^2
+\;\Rightarrow\;
+t^2(\mathbf{D}\cdot\mathbf{D}) + 2t\,\mathbf{D}\cdot(\mathbf{O}-\mathbf{C}) + \|\mathbf{O}-\mathbf{C}\|^2 - r^2 = 0
+```
+
+Pour des triangles, on utilise l'algorithme **Möller-Trumbore** (1997) qui donne directement les coordonnées barycentriques et la profondeur en quelques produits vectoriels. Les GPUs RTX/RDNA2+ embarquent une unité matérielle (**RT cores**) qui accélère ce test des centaines de fois.
+
+#### Path tracing — la généralisation
+
+Au lieu de s'arrêter à la première intersection, on **rebondit** : à chaque touche, on tire un nouveau rayon dans une direction échantillonnée selon la BRDF, jusqu'à atteindre une source lumineuse. C'est une **estimation Monte-Carlo** de l'intégrale de rendu :
+
+```math
+L_o \approx \frac{1}{N} \sum_{k=1}^{N} \frac{f_r(\boldsymbol{\omega}_i^{(k)}, \boldsymbol{\omega}_o)\,L_i(\boldsymbol{\omega}_i^{(k)})\,(\boldsymbol{\omega}_i^{(k)} \cdot \mathbf{n})}{p(\boldsymbol{\omega}_i^{(k)})}
+```
+
+où $p$ est la **densité de probabilité** d'échantillonnage. Plus $N$ est grand, moins l'image est bruitée. Quake II RTX, Cyberpunk 2077 Path Tracing et Portal RTX sont des path tracers temps réel ; ils s'appuient sur des **denoisers neuronaux** (NVIDIA OptiX) pour rendre une image propre avec seulement 1-2 échantillons par pixel.
+
+#### Global illumination
+
+Tous les rebonds **autres que la première intersection** forment l'**illumination globale**. En temps réel on l'approxime :
+
+- **Lightmaps précalculées** (Quake, 1996) — les surfaces statiques ont leur éclairage cuit dans des textures. Coût zéro à l'exécution mais inutilisable sur géométrie dynamique.
+- **Voxel cone tracing** (*VXGI*, NVIDIA 2014) — voxellise la scène, propage la lumière dans la grille.
+- **Probes irradiance** (*Light Probes*, *DDGI*) — on échantillonne l'irradiance en quelques points stratégiques et on interpole.
+- **Lumen** (Unreal Engine 5, 2022) — combinaison hybride de surface caching + screen tracing + (optionnel) ray tracing matériel.
+
+#### Upscaling temporel — DLSS, FSR, XeSS
+
+Le rendu d'image en 4K coûte 4× le rendu 1080p. La parade : rendre à résolution interne plus basse (souvent 1440p ou 1080p) puis **reconstruire** la 4K en exploitant les **frames précédentes**. C'est le rôle des techniques d'upscaling :
+
+- **DLSS** (NVIDIA, 2018) : réseau convolutionnel entraîné offline sur des images 16K de référence.
+- **FSR 2/3** (AMD, 2022) : algorithmique pur (heuristiques + reprojection + accumulation), tourne sur tout GPU.
+- **XeSS** (Intel, 2022) : approche neurale similaire à DLSS, plus portable.
+- **Frame Generation** (DLSS 3, FSR 3) : interpole / extrapole une frame intermédiaire à partir de deux frames rendues + des vecteurs de mouvement, pour doubler le framerate perçu.
+
+Mathématiquement, ce sont des **filtres de reprojection temporelle** :
+
+```math
+C_t(\mathbf{p}) = \alpha\,C_t^\text{rendu}(\mathbf{p}) + (1 - \alpha)\,C_{t-1}(\mathbf{p} + \mathbf{v})
+```
+
+où $\mathbf{v}$ est le **vecteur de mouvement** (motion vector) qui dit où le pixel `p` se trouvait à la frame précédente. La pondération $\alpha$ (0.1 typique) limite le ghosting des objets en mouvement.
+
+[ Retour en haut de page](#table-des-matières)
 
 ---
 
@@ -1432,7 +1917,7 @@ Bien que les détails de ces opérations dépendent du langage de programmation 
 
 Cette étape est facultative et peut être utilisée pour réaliser des effets complexes : déplacement de sommets, génération de géométrie procédurale, création d'ombres volumétriques, etc.
 
-> 💡 Un cas concret pourrait être par exemple la **modélisation procédurale** pour générer ou modifier la géométrie d'un personnage en temps réel — créer des détails supplémentaires ou modifier la forme du personnage selon certaines conditions du jeu.
+> Un cas concret pourrait être par exemple la **modélisation procédurale** pour générer ou modifier la géométrie d'un personnage en temps réel — créer des détails supplémentaires ou modifier la forme du personnage selon certaines conditions du jeu.
 
 ##### Fonctionnement du geometry shader
 
@@ -1589,7 +2074,7 @@ où $\sigma$ est l'écart-type de la distribution gaussienne, $k$ est la taille 
 - **Simplification de la géométrie** (*Level of Detail*, LOD) : consiste à réduire le nombre de triangles nécessaires pour représenter un objet. Si un objet est suffisamment éloigné de la caméra, il peut être représenté par un nombre réduit de triangles sans affecter de manière significative la qualité de l'image.
 - **Mipmapping** : utilise des versions pré-réduites des textures pour les objets distants, ce qui améliore les performances et réduit le *aliasing*.
 
-[🔝 Retour en haut de page](#table-des-matières)
+[ Retour en haut de page](#table-des-matières)
 
 ---
 
@@ -1618,7 +2103,7 @@ Voici quelques ressources reconnues pour approfondir les sujets abordés dans ce
 - [Unity](https://unity.com/), [Unreal Engine](https://www.unrealengine.com/), [Godot](https://godotengine.org/) — moteurs grand public.
 - [Bevy](https://bevyengine.org/) (Rust), [MonoGame](https://www.monogame.net/) (C\#), [raylib](https://www.raylib.com/) (C) — frameworks plus légers, idéaux pour apprendre.
 
-[🔝 Retour en haut de page](#table-des-matières)
+[ Retour en haut de page](#table-des-matières)
 
 ---
 
