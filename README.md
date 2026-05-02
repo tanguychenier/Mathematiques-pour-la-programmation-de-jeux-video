@@ -259,7 +259,7 @@ où $x_n$ est le nombre observable. La **période** est la longueur du cycle $S_
 - **BigCrush** : suite de tests statistiques de référence (TestU01, Pierre L'Ecuyer) utilisée pour disqualifier les PRNG biaisés.
 - **LCG** (*Linear Congruential Generator*) : la formule $S_{n+1} = (a \cdot S_n + c) \bmod m$.
 
-> **Aucun PRNG n'est cryptographiquement sûr** par défaut — pour générer un token de session ou simuler un draw "fair" avec mise réelle, utilisez `crypto.randomBytes`/`SecureRandom`. Pour un jeu, c'est inutile et coûteux.
+> **Aucun PRNG standard n'est cryptographiquement sûr** — pour générer un token de session ou simuler un tirage certifié équitable avec mise réelle, il faut un **CSPRNG** (générateur cryptographiquement sûr), disponible dans la bibliothèque standard de chaque langage (`crypto` en Node.js, `secrets` en Python, `SecureRandom` en Java, `BCryptGenRandom` sur Windows…). Dans la plupart des jeux vidéo sans mise réelle (FPS, RPG, jeux de plateforme), un PRNG standard suffit et un CSPRNG serait inutilement coûteux. En revanche, pour les loot boxes monétisées, les jeux de casino en ligne ou tout tirage devant être certifié équitable, un CSPRNG est indispensable.
 
 #### Seeder proprement
 
@@ -1165,7 +1165,7 @@ La règle pratique à retenir pour tout jeu moderne est donc :
 
 > **Le bug classique.** Une texture d'albedo déclarée en `RGBA8_UNORM` au lieu de `RGBA8_SRGB` : le shader croit lire du linéaire, fait ses calculs sur des chiffres déjà gamma-corrigés, et le résultat est trop sombre dans les ombres et trop saturé dans les *highlights*. C'est typiquement ce qu'on voyait sur certains jeux de la fin des années 2000 dont les textures n'étaient pas correctement marquées dans le pipeline.
 >
-> **Qu'est-ce que le HDR (*High Dynamic Range*) ?** Plage dynamique étendue : on stocke des composantes au-delà de `[0, 1]` (un soleil peut faire `(50, 50, 50)`). Cela ouvre la porte au *bloom*, à l'*exposition*, et au **tonemapping** — courbe de compression $f : \mathbb{R}^+ \to [0, 1]$ qui ramène la scène HDR dans la plage affichable par l'écran. Les deux opérateurs vedettes sont **Reinhard** ($f(x) = x/(1+x)$, simple et doux) et **ACES** (*Academy Color Encoding System*, courbe en S inspirée du cinéma, plus filmique — c'est le défaut de Unreal et de plus en plus de jeux AAA). Indispensable en PBR.
+> **Qu'est-ce que le HDR (*High Dynamic Range*) ?** Plage dynamique étendue : on stocke des composantes au-delà de `[0, 1]` (un soleil peut faire `(50, 50, 50)`). Cela ouvre la porte au *bloom*, à l'*exposition*, et au **tonemapping** — courbe de compression $f : \mathbb{R}^+ \to [0, 1]$ qui ramène la scène HDR dans la plage affichable par l'écran. Les deux opérateurs vedettes sont **Reinhard** ($f(x) = x/(1+x)$, simple et doux) et **ACES** (*Academy Color Encoding System*, courbe en S inspirée du cinéma, plus filmique — c'est l'opérateur par défaut d'Unreal et de plus en plus de jeux AAA). Indispensable en PBR.
 
 ### Formats de fichier d'image
 
@@ -1388,7 +1388,7 @@ où $\Delta t$ est le pas de temps. Euler explicite gagne en simplicité ce qu'i
 \mathbf{v}_{t+1} = \mathbf{v}_t + \mathbf{a}(\mathbf{p}_t)\,\Delta t, \qquad \mathbf{p}_{t+1} = \mathbf{p}_t + \mathbf{v}_{t+1}\,\Delta t
 ```
 
-  - *Avantages* : l'erreur d'énergie reste bornée sur la durée (pas de dérive séculaire) ; simple à implémenter ; **le défaut par défaut** dans la plupart des moteurs de jeu (Box2D, Bullet, PhysX).
+  - *Avantages* : l'erreur d'énergie reste bornée sur la durée (pas de dérive séculaire) ; simple à implémenter ; **l'intégrateur par défaut** dans la plupart des moteurs de jeu (Box2D, Bullet, PhysX).
   - *Inconvénients* : légèrement moins précis qu'Euler explicite sur un seul pas ; pas adapté aux contraintes d'angle complexes.
 
 - **Verlet de position** (Verlet, 1967) : on n'entrepose pas la vitesse explicitement, on la déduit des deux dernières positions.
@@ -1498,14 +1498,14 @@ v_{B_{t+1}} = v_{B_t} - \frac{J}{m_B} \times n
 La position des objets peut également être corrigée pour éviter les chevauchements en déplaçant les objets en fonction de la profondeur de pénétration $P$ et d'un facteur de correction :
 
 ```math
-p_{A_{t+1}} = p_{A_t} - \frac{1}{m_A} \times \frac{m_A + m_B}{m_A \times m_B} \times P \times n
+p_{A_{t+1}} = p_{A_t} - \frac{m_B}{m_A + m_B} \times P \times n
 ```
 
 ```math
-p_{B_{t+1}} = p_{B_t} + \frac{1}{m_B} \times \frac{m_A + m_B}{m_A \times m_B} \times P \times n
+p_{B_{t+1}} = p_{B_t} + \frac{m_A}{m_A + m_B} \times P \times n
 ```
 
-où $P$ est la profondeur de pénétration et $n$ est le vecteur normal à la surface de contact.
+où $P$ est la profondeur de pénétration et $n$ est le vecteur normal à la surface de contact. Le facteur $m_B/(m_A + m_B)$ (resp. $m_A/(m_A + m_B)$) répartit la correction en proportion inverse des masses : un objet plus lourd se déplace moins.
 
 ```mermaid
 graph LR
