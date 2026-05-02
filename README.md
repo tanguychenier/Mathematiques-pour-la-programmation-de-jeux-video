@@ -152,7 +152,7 @@ Les moteurs et outils ne sont pas d'accord :
 | Blender, 3ds Max, CAO   | main droite | $Z$ vers le haut | Hérité de la convention CAO          |
 | glTF, Vulkan, WebGPU    | main droite | $Y$ vers le haut | Standard d'échange moderne           |
 
-**Pourquoi ça compte ?** Quand on importe un modèle Blender (RH, Z-up) dans Unity (LH, Y-up), un asset orienté correctement à l'export apparaît tourné de 90° et reflété par rapport à un axe. Les outils d'import font automatiquement la conversion, mais c'est la source #1 de bugs visuels en pipeline 3D ("ma voiture est sur le toit").
+**Pourquoi ça compte ?** Quand on importe un modèle Blender (RH, Z-up) dans Unity (LH, Y-up), un asset orienté correctement à l'export apparaît tourné de 90° et reflété par rapport à un axe. Les outils d'import font automatiquement la conversion, mais quand un asset arrive « sur le toit » ou avec ses normales à l'envers dans le moteur, c'est presque toujours là qu'il faut chercher.
 
 **Conversion Z-up → Y-up** : on permute $y$ et $z$ et on change un signe :
 
@@ -166,7 +166,7 @@ Les moteurs et outils ne sont pas d'accord :
 \begin{pmatrix} x' \\ y' \\ z' \end{pmatrix}_\text{LH} = \begin{pmatrix} x \\ y \\ -z \end{pmatrix}_\text{RH}
 ```
 
-> **Règle de survie.** Quand vous écrivez du code mathématique dans un projet, **annoncez la convention en commentaire** au début du fichier ("Convention : right-handed, Y-up, rotation positive antihoraire vue depuis l'axe positif"). Tous les bugs de rotation inverse, de skybox à l'envers et de normales mal-orientées viennent d'une convention non documentée.
+> **Règle de survie.** Quand vous écrivez du code mathématique dans un projet, **annoncez la convention en commentaire** au début du fichier ("Convention : right-handed, Y-up, rotation positive antihoraire vue depuis l'axe positif"). Une bonne partie des bugs de rotation inverse, de skybox à l'envers ou de normales mal orientées s'explique simplement par une convention que personne n'a écrite noir sur blanc.
 
 ### Précision flottante : ce que tout dev de jeu doit savoir
 
@@ -204,7 +204,7 @@ bool ApproxEqual(float a, float b, float relTol = 1e-5f, float absTol = 1e-7f)
  => MathF.Abs(a - b) <= MathF.Max(absTol, relTol * MathF.Max(MathF.Abs(a), MathF.Abs(b)));
 ```
 
-> **`Mathf.Approximately` (Unity) utilise un epsilon de l'ordre de $10^{-6}$** : adapté aux objets proches de l'origine, **inutilisable** pour comparer des positions à plusieurs kilomètres. Roulez votre propre comparateur dans ce cas.
+> **`Mathf.Approximately` (Unity) utilise un epsilon de l'ordre de $10^{-6}$** : adapté aux objets proches de l'origine, mais inutilisable pour comparer des positions à plusieurs kilomètres. Dans ce cas il vaut mieux écrire son propre comparateur, par exemple le `ApproxEqual` ci-dessus.
 
 #### Catastrophic cancellation
 
@@ -293,7 +293,7 @@ uint Hash2D(int x, int y, uint seed)
 float Random01(uint h) => (h >> 8) * (1f / (1u << 24));
 ```
 
-C'est exactement comme ça que *Minecraft* place des arbres : `Hash2D(blockX, blockZ, worldSeed)` détermine le contenu de chaque chunk, sans avoir à mémoriser quoi que ce soit.
+C'est l'idée derrière le placement d'arbres dans *Minecraft* : `Hash2D(blockX, blockZ, worldSeed)` détermine le contenu de chaque chunk, sans avoir à mémoriser quoi que ce soit côté serveur.
 
 #### Distributions au-delà de l'uniforme
 
@@ -523,7 +523,7 @@ Pour interpoler entre deux **directions** ou deux **rotations** sur une sphère 
 #### Easing — interpolation non-linéaire
 
 > **Qu'est-ce que l'easing ?**
-> *Easing* signifie littéralement "adoucir". C'est l'idée que dans la vraie vie, rien ne démarre à pleine vitesse et ne s'arrête pile : une voiture accélère puis freine, un objet rebondit, une porte de placard se referme avec un léger ralenti final. En interpolation, **un LERP "tout droit" donne un mouvement mécanique**, robotique. Les fonctions d'easing remplacent le paramètre $t$ par une version courbée de lui-même pour simuler ces accélérations / décélérations naturelles. Les UI modernes (transitions CSS, animations Apple/Material), les caméras de jeu, les démineurs de Démineur — tout passe par de l'easing.
+> *Easing* signifie littéralement "adoucir". C'est l'idée que dans la vraie vie, rien ne démarre à pleine vitesse et ne s'arrête pile : une voiture accélère puis freine, un objet rebondit, une porte de placard se referme avec un léger ralenti final. En interpolation, un LERP « tout droit » donne un mouvement mécanique, robotique. Les fonctions d'easing remplacent le paramètre $t$ par une version courbée de lui-même pour simuler ces accélérations et décélérations naturelles. On en retrouve dans les transitions CSS et les animations Apple ou Material, dans les caméras de jeu, et plus généralement dans à peu près toutes les animations d'interface modernes.
 
 Le principe : on garde $t \in [0, 1]$ mais on l'envoie à travers une fonction $f$ avant l'interpolation : `lerp(A, B, f(t))`. Quelques classiques :
 
@@ -599,7 +599,7 @@ La **Catmull-Rom spline** est un cas particulier de Hermite où les tangentes so
 T_i = \frac{P_{i+1} - P_{i-1}}{2}
 ```
 
-Conséquence : la courbe **passe exactement par chaque point de contrôle** (interpolante, pas approximante comme Bézier) et reste $C^1$ continue. C'est *la* spline préférée pour les **trajectoires de caméra**, les **chemins de waypoints**, l'animation de spline-IK. La variante **Catmull-Rom centripète** (paramétrisation $t_{i+1} = t_i + \|P_{i+1} - P_i\|^{1/2}$) supprime les boucles parasites quand deux points sont très proches — c'est elle que Unreal Engine utilise par défaut pour ses *splines actor*.
+Conséquence : la courbe **passe exactement par chaque point de contrôle** (interpolante, pas approximante comme Bézier) et reste $C^1$ continue. C'est une des splines les plus utilisées pour les trajectoires de caméra, les chemins de waypoints et l'animation de spline-IK. La variante **Catmull-Rom centripète** (paramétrisation $t_{i+1} = t_i + \|P_{i+1} - P_i\|^{1/2}$) supprime les boucles parasites quand deux points sont très proches ; c'est cette variante qui est retenue par défaut dans les *splines actor* d'Unreal Engine.
 
 ##### B-splines et NURBS — splines à degré arbitraire
 
@@ -805,7 +805,7 @@ où $\Omega$ est l'angle entre les deux quaternions, donné par leur **produit s
 \cos\Omega = \mathbf{q}_0 \cdot \mathbf{q}_1 = w_0 w_1 + x_0 x_1 + y_0 y_1 + z_0 z_1
 ```
 
-> **Astuce d'implémentation.** Si $\cos\Omega < 0$, on renverse le signe de l'un des deux quaternions ($-\mathbf{q}$ représente la même rotation) pour passer par le chemin court sur la sphère. Et quand $\Omega$ est très petit, on retombe sur un LERP suivi d'une normalisation pour éviter la division par $\sin\Omega \to 0$ — c'est ce que font Unity et Unreal en interne.
+> **Astuce d'implémentation.** Si $\cos\Omega < 0$, on renverse le signe de l'un des deux quaternions ($-\mathbf{q}$ représente la même rotation) pour passer par le chemin court sur la sphère. Et quand $\Omega$ est très petit, on retombe sur un LERP suivi d'une normalisation pour éviter la division par $\sin\Omega$ qui tend vers zéro — la plupart des implémentations grand public (Unity, Unreal) font ce repli silencieusement.
 
 ```csharp
 // Unity / .NET
@@ -980,7 +980,7 @@ DirectX/HLSL ainsi qu'historiquement Direct3D et XNA utilisent la convention **r
 \mathbf{v}_{\text{clip}} = \mathbf{v}_{\text{local}} \cdot M^{T} \cdot V^{T} \cdot P^{T}
 ```
 
-Concrètement, dans un shader HLSL on écrit `mul(v, mul(M, mul(V, P)))` ou plus simplement `mul(v, MVP)` quand `MVP = M * V * P` est précalculée côté CPU avec l'ordre row-major. **Ne jamais mélanger** : c'est exactement le bug qui produit "ma scène est tournée de 90° après upload sur GPU". HLSL accepte le pragma `#pragma pack_matrix(row_major)` ou `column_major` pour fixer la convention de stockage indépendamment de la convention mathématique — toujours s'aligner avec ce que le moteur uploade.
+Concrètement, dans un shader HLSL on écrit `mul(v, mul(M, mul(V, P)))` ou plus simplement `mul(v, MVP)` quand `MVP = M * V * P` est précalculée côté CPU avec l'ordre row-major. Mélanger les deux conventions sans s'en rendre compte donne un résultat très reconnaissable : la scène apparaît tournée de 90° (ou plus) après upload sur le GPU, parce que les transformations sont appliquées dans le mauvais ordre. HLSL accepte le pragma `#pragma pack_matrix(row_major)` ou `column_major` pour fixer la convention de stockage indépendamment de la convention mathématique : il faut s'aligner sur ce que le moteur uploade.
 
 > **Règle mnémotechnique**. *Column-major + pré-multiplication* (OpenGL) **et** *row-major + post-multiplication* (DirectX) sont mathématiquement **équivalents** : la matrice column-major $M$ et la matrice row-major $M^T$ stockent les **mêmes 16 floats dans le même ordre en mémoire**. La différence est purement conventionnelle (ce qu'on appelle "ligne" et ce qu'on appelle "colonne"). Le seul vrai piège : l'**ordre de multiplication** dans le code, qui s'inverse selon la convention.
 
@@ -1150,7 +1150,7 @@ L'exposant effectif global ($\approx 2{,}4$ avec offset) revient à un gamma moy
 3. Tous les calculs d'éclairage, alpha-blending, post-process, se font en linéaire.
 4. Le pipeline final convertit linéaire → sRGB juste avant l'écriture dans le framebuffer.
 
-> **Le bug classique** : un junior met une texture albedo en `RGBA8_UNORM` au lieu de `RGBA8_SRGB`. Le shader croit lire du linéaire, fait ses calculs sur des chiffres déjà gamma-corrigés, le résultat est trop sombre dans les ombres et trop clair dans les highlights. C'est exactement ce qui produisait l'aspect "PS3" de certains jeux mal calibrés des années 2008-2012.
+> **Le bug classique.** Une texture d'albedo déclarée en `RGBA8_UNORM` au lieu de `RGBA8_SRGB` : le shader croit lire du linéaire, fait ses calculs sur des chiffres déjà gamma-corrigés, et le résultat est trop sombre dans les ombres et trop saturé dans les *highlights*. C'est typiquement ce qu'on voyait sur certains jeux de la fin des années 2000 dont les textures n'étaient pas correctement marquées dans le pipeline.
 >
 > **Qu'est-ce que le HDR (*High Dynamic Range*) ?** Plage dynamique étendue : on stocke des composantes au-delà de `[0, 1]` (un soleil peut faire `(50, 50, 50)`). Cela ouvre la porte au *bloom*, à l'*exposition*, et au **tonemapping** — courbe de compression $f : \mathbb{R}^+ \to [0, 1]$ qui ramène la scène HDR dans la plage affichable par l'écran. Les deux opérateurs vedettes sont **Reinhard** ($f(x) = x/(1+x)$, simple et doux) et **ACES** (*Academy Color Encoding System*, courbe en S inspirée du cinéma, plus filmique — c'est le défaut de Unreal et de plus en plus de jeux AAA). Indispensable en PBR.
 
@@ -1310,11 +1310,11 @@ où $J^{+}$ est la **pseudo-inverse** de Moore-Penrose. Trois variantes :
 
 - **Jacobienne transposée** : on remplace $J^{+}$ par $J^{T}$. Très peu coûteux, mais convergence lente et choix de $\alpha$ délicat. Bon pour des chaînes de 2-3 articulations.
 - **Pseudo-inverse** ($J^{+} = J^{T}(JJ^{T})^{-1}$) : converge en peu d'itérations mais explose près des **singularités** (coude tendu, par exemple) où $JJ^{T}$ devient singulière.
-- **Damped Least Squares** (DLS, Levenberg-Marquardt) : $\Delta \boldsymbol{\theta} = J^{T}(JJ^{T} + \lambda^2 I)^{-1}\,(\mathbf{e}_\text{cible} - \mathbf{e})$. Le terme d'amortissement $\lambda$ stabilise au prix d'un peu de précision. C'est la méthode-mère de toutes les implémentations IK robustes (Maya, Blender HIK, Unity FinalIK).
+- **Damped Least Squares** (DLS, Levenberg-Marquardt) : $\Delta \boldsymbol{\theta} = J^{T}(JJ^{T} + \lambda^2 I)^{-1}\,(\mathbf{e}_\text{cible} - \mathbf{e})$. Le terme d'amortissement $\lambda$ stabilise les singularités au prix d'un peu de précision. C'est l'ossature classique des solveurs IK qu'on retrouve aussi bien dans Maya que dans les middleware côté moteur de jeu.
 
 #### CCD — Cyclic Coordinate Descent
 
-Itérativement, on parcourt la chaîne de l'effecteur vers la racine et, pour chaque articulation, on calcule **la rotation pure** qui aligne le segment "articulation → effecteur" avec "articulation → cible". Trivial à implémenter (10 lignes), gratuit en flops, ne plante jamais en singularité, mais produit parfois des poses peu naturelles (l'épaule fait tout le travail avant le coude). Standard dans les jeux jusqu'aux années 2010, encore présent comme *fallback*.
+Itérativement, on parcourt la chaîne de l'effecteur vers la racine et, pour chaque articulation, on calcule la rotation pure qui aligne le segment « articulation vers effecteur » avec « articulation vers cible ». L'implémentation tient en quelques dizaines de lignes, le coût en flops est négligeable et il n'y a pas de singularité à gérer. En revanche, les poses obtenues sont parfois peu naturelles (l'épaule fait l'essentiel du travail avant le coude). Très répandu dans les jeux jusqu'au milieu des années 2010, et encore utilisé comme *fallback*.
 
 #### FABRIK — Forward And Backward Reaching Inverse Kinematics
 
@@ -1323,7 +1323,7 @@ Aristidou & Lasenby, 2011. On traite la chaîne comme un ensemble de longueurs *
 1. **Forward pass** : on déplace l'effecteur sur la cible, puis on fait remonter chaque articulation vers la racine en préservant les longueurs des os.
 2. **Backward pass** : on remet la racine à sa position initiale et on redescend la chaîne en préservant les longueurs.
 
-On itère jusqu'à convergence (typiquement 5-10 passes pour une chaîne de 7 os). Avantages : pas de Jacobienne, pas de singularité, comportement visuellement très naturel, gère les **contraintes d'angle** par projection. C'est l'algorithme par défaut d'Unreal (`Anim Graph FABRIK`) et de la plupart des middleware IK modernes.
+On itère jusqu'à convergence (typiquement 5-10 passes pour une chaîne de 7 os). Avantages : pas de Jacobienne à manipuler, pas de problème de singularité, un comportement visuellement très naturel, et la possibilité d'imposer des **contraintes d'angle** par simple projection à chaque passe. Largement adopté côté moteur de jeu — il est par exemple disponible directement dans le graphe d'animation d'Unreal sous le nom `Anim Graph FABRIK`.
 
 [ Retour en haut de page](#table-des-matières)
 
@@ -1413,7 +1413,7 @@ alpha = accumulator / fixedDt
 render(state, alpha)           // interpolation visuelle pour la fluidité
 ```
 
-C'est exactement ce que fait Unity (`FixedUpdate`), Unreal (`PhysicsTickRate`), Godot (`_physics_process`). Le rendu peut tourner à 144 Hz, la physique reste à 60 Hz fixe.
+C'est ce schéma qui se cache derrière le `FixedUpdate` d'Unity, le `PhysicsTickRate` d'Unreal ou le `_physics_process` de Godot : le rendu peut tourner à 144 Hz pendant que la physique reste cadencée à 60 Hz fixe.
 
 ### Détection de collision
 
@@ -1530,7 +1530,7 @@ Selector (?)
  └── MoveTo(waypoint)
 ```
 
-L'avantage est la **composabilité** : on remplace `Attack` par `[Selector: ShootIfRanged, MeleeIfClose]` sans rien changer ailleurs. C'est ce qui motive son adoption dans Unreal (`BehaviorTree`), Unity (`Behavior Designer`), et tous les middleware AAA.
+L'avantage est la **composabilité** : on remplace `Attack` par `[Selector: ShootIfRanged, MeleeIfClose]` sans rien changer ailleurs. C'est ce qui explique sa popularité dans les moteurs grand public — Unreal le fournit directement via son `BehaviorTree` natif, Unity via le middleware `Behavior Designer`.
 
 #### Utility AI
 
@@ -1540,7 +1540,7 @@ Plutôt que de hard-coder des transitions, l'**Utility AI** assigne une **foncti
 \mathrm{score}(action) = \prod_{i} f_i(\text{contexte})
 ```
 
-où chaque $f_i \in [0, 1]$ est une **considération** (distance au joueur, niveau de PV, présence de couvert…). C'est l'approche utilisée dans *The Sims*, *XCOM*, *Hitman*. Plus organique que les BT pour les comportements émergents.
+où chaque $f_i \in [0, 1]$ est une **considération** (distance au joueur, niveau de PV, présence de couvert…). On retrouve cette approche par exemple dans la série *The Sims*. Elle donne souvent des comportements plus organiques que les *behavior trees*, au prix d'une difficulté de débogage plus élevée (il est plus dur de comprendre pourquoi un agent a choisi telle action quand le score résulte d'un produit de fonctions continues).
 
 #### GOAP — Goal-Oriented Action Planning
 
@@ -1614,7 +1614,7 @@ UCB1(n) = \frac{w_n}{v_n} + c\sqrt{\frac{\ln V_p}{v_n}}
 - **Simulation** (*rollout*). On joue ensuite la partie aléatoirement (ou avec une politique légère) jusqu'à la fin pour obtenir un résultat.
 - **Backpropagation.** On remonte le résultat dans l'arbre, mettant à jour $w$ et $v$ sur tous les nœuds visités.
 
-C'est l'algorithme qui a fait gagner **AlphaGo** contre Lee Sedol (2016, en combinaison avec un réseau de neurones d'évaluation de position).
+C'est cet algorithme, combiné à un réseau de neurones d'évaluation de position, que **AlphaGo** a utilisé pour battre Lee Sedol en 2016.
 
 ### Apprentissage automatique
 
@@ -1645,7 +1645,7 @@ Q(s, a) \leftarrow Q(s, a) + \alpha\,\Big[r + \gamma \max_{a'} Q(s', a') - Q(s, 
 
 > **L'équation de Bellman** (Richard Bellman, 1957) est le cœur du RL : elle exprime la valeur d'un état comme la récompense immédiate **plus** la valeur (actualisée par $\gamma$) du meilleur état suivant. La règle de mise à jour ci-dessus pousse à chaque pas la valeur estimée $Q(s, a)$ vers cette cible idéale, $\alpha$ étant le pas d'apprentissage.
 >
-> **Le RL fonctionne brillamment dans des environnements simulables**. Pour les jeux multijoueurs en ligne, on n'utilise quasi jamais du RL temps réel : le coût d'inférence + le risque de comportements aberrants sont prohibitifs. Le RL sert plutôt à **entraîner** des politiques offline, qu'on **distille** ensuite en arbres de décision ou tables de lookup pour le runtime (technique utilisée par *Forza Motorsport* pour le drivatar).
+> **Là où le RL est efficace en pratique, et là où il l'est moins.** Le RL donne de très bons résultats quand l'environnement est entièrement simulable et qu'on peut générer des millions d'épisodes. À l'inverse, dans un jeu multijoueur en ligne, on évite généralement de faire tourner du RL en temps réel : le coût d'inférence devient gênant, et un comportement aberrant peut casser une partie ranked. La pratique courante est d'entraîner les politiques *offline* puis de les **distiller** en arbres de décision ou en tables de *lookup* exploitables au runtime — c'est par exemple la technique retenue pour les *drivatars* de *Forza Motorsport*.
 
 [ Retour en haut de page](#table-des-matières)
 
@@ -1716,7 +1716,7 @@ S(t) = (1 - \alpha)\,S_0 + \alpha\,S_1
 \alpha = \frac{t - t_0}{t_1 - t_0}
 ```
 
-où $S_0, S_1$ sont les deux snapshots qui encadrent le temps $t$. La règle pratique est de retarder de **2× la période du tick rate** : sur un serveur 64 Hz, on rend les autres joueurs avec 30 ms de retard. *Counter-Strike*, *Valorant*, *Overwatch* font tous ça.
+où $S_0, S_1$ sont les deux snapshots qui encadrent le temps $t$. La règle pratique est de retarder le rendu d'environ **deux fois la période du tick rate** : sur un serveur 64 Hz, on affiche les autres joueurs avec un peu plus de 30 ms de retard. C'est l'approche standard des FPS compétitifs (*Counter-Strike*, *Valorant*, *Overwatch* l'appliquent tous, à quelques millisecondes près).
 
 > **Pourquoi exactement 2× la période ?** Soit $T = 1/\text{tickRate}$ la période entre deux snapshots et $J$ la *jitter* réseau (variation du délai d'arrivée). Pour qu'à tout instant on dispose d'au moins **deux** snapshots autour du temps de rendu (l'un derrière, l'un devant) il faut un *buffer* d'au moins $T$ ; pour absorber la *jitter* sans interruption il faut **un autre** $T$ de marge. Total : $2T$. Avec moins, un paquet retardé fait dégénérer en **extrapolation** (deviner le futur), ce qui produit le tristement célèbre *rubber-banding*. Avec plus, on accumule un *input lag* visible. Pour les jeux compétitifs très tendus (*VALORANT*, *Counter-Strike 2*), on baisse à $\sim 1{,}5\,T$ et on assume une perte occasionnelle au profit de la réactivité.
 
@@ -1745,7 +1745,7 @@ on receive (server_state, server_acked_tick):
  inputs = inputs[server_acked_tick+1:]
 ```
 
-C'est la technique fondatrice de Quake World (1996, John Carmack). Toujours utilisée presque telle quelle.
+C'est la technique fondatrice de *QuakeWorld* (1996, John Carmack), et elle reste utilisée aujourd'hui dans les FPS modernes avec très peu de modifications.
 
 ##### 3. Lag compensation (côté serveur, pour les hits)
 
@@ -1755,7 +1755,7 @@ Quand un joueur tire, le serveur reçoit l'input avec un délai $\Delta = \text{
 \Delta_\text{rewind} = \frac{\text{RTT}_\text{client}}{2} + t_\text{interpolation}
 ```
 
-Le serveur garde un buffer circulaire des dernières snapshots (~1 s d'historique). C'est ce qui produit l'effet "j'ai été tué après m'être caché derrière le mur" : du point de vue du tireur, il vous voyait encore exposé.
+Le serveur garde un buffer circulaire des dernières snapshots (typiquement une seconde d'historique). De là vient l'effet bien connu où l'on se fait tuer alors qu'on s'estime déjà à couvert : du point de vue du tireur, à l'instant où il a appuyé, sa cible était encore exposée.
 
 ##### 4. Lockstep déterministe (alternative aux snapshots)
 
@@ -1807,7 +1807,7 @@ N_\text{blanc}(x, y) = \mathrm{hash}(x, y) \in [0, 1]
 
 #### Bruit de Perlin
 
-> **Définition.** Le **bruit de Perlin** est une fonction continue et lisse, inventée par **Ken Perlin** en 1983 pour générer les textures du film *Tron*. Elle ressemble à un terrain vu de dessus : des vallées et des collines qui se succèdent sans cassure. Perlin a reçu un Oscar technique en 1997 pour son invention. Aujourd'hui, *Minecraft*, *No Man's Sky*, *Terraria* et la quasi-totalité des jeux à monde ouvert reposent sur Perlin (ou son successeur Simplex).
+> **Définition.** Le **bruit de Perlin** est une fonction continue et lisse, inventée par **Ken Perlin** en 1983 pour générer les textures du film *Tron*. Elle ressemble à un terrain vu de dessus : des vallées et des collines qui se succèdent sans cassure. Perlin a reçu un Oscar technique en 1997 pour son invention. C'est aujourd'hui la base de la génération de terrain procédurale dans la majorité des jeux à monde ouvert (*Minecraft*, *No Man's Sky*, *Terraria*…), souvent dans sa variante Simplex décrite ci-dessous.
 
 L'idée intuitive : on découpe l'espace en une grille de cellules entières. À chaque sommet de la grille, on stocke un **vecteur gradient** pseudo-aléatoire (une direction). Quand on demande la valeur en un point $(x, y)$ quelconque, on combine les contributions des 4 sommets de la cellule qui contient le point, en les pondérant selon la position relative dans la cellule.
 
@@ -1958,7 +1958,7 @@ Le terme $D$ a connu trois générations chez les chercheurs et chez les artiste
 - **Trowbridge-Reitz** (1975) et sa réincarnation **GGX** (Walter et al., 2007) : queue plus lourde, *highlights* plus naturelles. Disney l'a adoptée dans son fameux *principled BRDF* (SIGGRAPH 2012), suivi par Unreal 4 (Karis, 2013) — depuis, c'est le standard de fait dans tous les engines.
 - **GGX-anisotropique** : variante à deux paramètres de rugosité ($\alpha_x, \alpha_y$) qui modélise le cuir brossé, le velours, les disques métalliques rayés. Coût : un produit scalaire de plus, pour un gain visuel énorme sur un matériau "horloger".
 
-L'ironie historique : Trowbridge-Reitz et GGX sont **mathématiquement identiques** — Walter & co. ont redécouvert la NDF de 1975 sans le savoir, l'ont nommée d'après les initiales internes "Generalized-Trowbridge-Reitz" (selon une rumeur persistante chez Pixar) puis l'ont popularisée. C'est pour ça qu'on voit les deux noms accolés dans la littérature.
+L'ironie historique : Trowbridge-Reitz et GGX sont **mathématiquement identiques**. Walter et ses co-auteurs ont en pratique redécouvert la NDF de 1975, l'ont nommée d'après les initiales internes « Generalized-Trowbridge-Reitz » (selon une rumeur persistante chez Pixar) puis l'ont popularisée. D'où la cohabitation des deux noms dans la littérature graphique récente.
 
  **Paramètres PBR exposés à l'artiste.** Ce qu'on lui demande de peindre dans des textures :
 
@@ -1967,7 +1967,7 @@ L'ironie historique : Trowbridge-Reitz et GGX sont **mathématiquement identique
 - **Roughness** ($\in [0, 1]$) : 0 = miroir, 1 = surface mate parfaitement diffuse.
 - **Normal map** (RGB encodant un vecteur 3D) : perturbe la normale géométrique pour simuler des micro-bosses sans ajouter de polygones.
 
-Avec ces 4 paramètres, on reproduit fidèlement 95 % des matériaux du monde physique (peau, métal, plastique, tissu, vitre, eau…). C'est ce qui rend les jeux modernes interopérables : un asset Substance Painter charge directement dans Unity, Unreal et Blender sans retravail.
+Avec ces quatre paramètres, on couvre la majorité des matériaux du monde physique : peau, métal, plastique, tissu, vitre, eau, etc. C'est aussi ce qui rend les *assets* modernes interopérables : une texture peinte dans Substance Painter peut être chargée à peu près telle quelle dans Unity, Unreal ou Blender.
 
 #### Occlusion ambiante (*Ambient Occlusion*, AO)
 
@@ -2001,7 +2001,7 @@ L'évaluation de l'**irradiance** $E(\mathbf{n})$ (lumière reçue par une surfa
 E(\mathbf{n}) \approx \sum_{\ell = 0}^{2} \sum_{m = -\ell}^{\ell} c_\ell^m\,Y_\ell^m(\mathbf{n})
 ```
 
-C'est la base des **Light Probes** d'Unity, des **Irradiance Volumes** d'Unreal, des **Lightmaps SH** de Frostbite, et même de la skybox dynamique d'AAA modernes (CoD: Modern Warfare, Spider-Man PS5).
+C'est cette représentation qui se cache derrière les **Light Probes** d'Unity, les **Irradiance Volumes** d'Unreal et les **Lightmaps SH** de Frostbite — autrement dit, la quasi-totalité des dispositifs d'éclairage ambiant compressé qu'on rencontre dans les moteurs modernes.
 
 #### Échantillonnage par importance — comment Monte-Carlo ne diverge pas
 
@@ -2014,10 +2014,10 @@ L_o \approx \frac{1}{N} \sum_{k=1}^{N} \frac{f_r(\boldsymbol{\omega}_i^{(k)}, \b
 Trois choix usuels de PDF, chacun adapté à un terme :
 
 - **Cosine-weighted hemisphere** : $p(\boldsymbol{\omega}) = \cos\theta / \pi$. Optimale pour un terme lambertien $f_r = \rho/\pi$ : la pondération $\cos\theta$ disparaît exactement, donc tous les échantillons contribuent uniformément. Tirage par disque concentrique (Shirley, 1997) en deux uniformes $(u_1, u_2) \in [0,1]^2$.
-- **GGX importance sampling** : tirer le half-vector $\mathbf{h}$ selon la NDF $D(\mathbf{h})$ puis reflechir $\boldsymbol{\omega}_o$ par $\mathbf{h}$. Indispensable pour les *highlights* spéculaires fines — sans ça, un matériau roughness $0{,}05$ demande $10\,000$ samples uniformes vs 8-16 samples GGX.
+- **GGX importance sampling** : tirer le half-vector $\mathbf{h}$ selon la NDF $D(\mathbf{h})$ puis réfléchir $\boldsymbol{\omega}_o$ par $\mathbf{h}$. Indispensable pour les *highlights* spéculaires fines : sur un matériau quasi miroir (rugosité ≈ 0,05), un échantillonnage uniforme de la sphère a très peu de chances de tomber dans le pic spéculaire, alors qu'un *importance sampling* sur $D$ y concentre les tirages naturellement et converge avec un nombre d'échantillons radicalement plus faible.
 - **Multiple Importance Sampling (MIS)** : combine deux PDFs (souvent BRDF + lumière) en pondérant par la *balance heuristic* de Veach (1995). C'est ce qui permet à un path tracer moderne de gérer correctement à la fois les surfaces très spéculaires *et* les sources de lumière étendues, sans firefly.
 
-> **Pourquoi DLSS et FSR convergent si vite ?** Les denoisers neuronaux des path tracers temps réel (Cyberpunk RTX, Quake II RTX) opèrent sur des images de 1-2 sample/pixel **importance-sampled**. Sans importance sampling, ces 1-2 samples seraient trop bruités même pour un réseau ; c'est l'union des deux qui fait le miracle.
+> **Pourquoi DLSS et FSR convergent aussi vite.** Les *denoisers* neuronaux des path tracers temps réel (*Cyberpunk* RTX, *Quake II* RTX) opèrent sur des images rendues à 1 ou 2 échantillons par pixel, mais ces échantillons sont déjà *importance-sampled*. Sans cette pré-concentration des tirages dans les directions énergétiquement utiles, 1 ou 2 samples seraient trop bruités même pour un réseau de neurones bien entraîné : c'est la combinaison des deux qui rend le path tracing temps réel réellement praticable aujourd'hui.
 
 #### Anti-aliasing — la guerre contre l'escalier
 
@@ -2037,7 +2037,7 @@ C_\text{pixel} = \frac{1}{k} \sum_{j=1}^{k} \mathbb{1}[\text{sample}_j \text{ co
 C_t(\mathbf{p}) = \alpha\,C_t^\text{rendu}(\mathbf{p}) + (1 - \alpha)\,C_{t-1}(\mathbf{p} + \mathbf{v}_\text{motion})
 ```
 
-Avec $\alpha \approx 0{,}1$, après ~10 frames un pixel statique a vu 10 sous-échantillons différents → équivalent à un SSAA 10×, gratuitement. Le défaut classique : **ghosting** des objets qui se découvrent (une couleur "fantôme" reste collée derrière), mitigé par le *neighborhood clamping* (Karis, 2014) qui borne la couleur historique aux extrêmes du voisinage spatial. **DLAA** et **TSR** (Unreal 5) sont des évolutions modernes de TAA.
+Avec $\alpha \approx 0{,}1$, après une dizaine de frames un pixel statique a accumulé une dizaine de sous-échantillons différents : on obtient à peu près la qualité d'un SSAA 10× pour le coût d'un seul rendu par frame. Le défaut classique du TAA est le *ghosting* : sur un objet qui se découvre, une couleur fantôme issue des frames précédentes reste collée derrière lui. Le *neighborhood clamping* (Karis, 2014) atténue cet effet en bornant la couleur historique aux extrêmes du voisinage spatial. **DLAA** et **TSR** (Unreal 5) sont des évolutions modernes de TAA.
 
 #### Tessellation et displacement mapping
 
@@ -2055,7 +2055,7 @@ Combinés, tessellation et displacement créent un terrain ou une muraille qui s
 
 #### Ray tracing — le tracé de rayons
 
-> **Idée**. Au lieu de projeter des triangles puis d'éclairer chaque pixel a posteriori, on tire un rayon depuis la caméra à travers chaque pixel et on regarde **ce qu'il rencontre** dans la scène. C'est l'**inversion physique** de la propagation de la lumière (les vrais photons partent des sources, pas de l'œil).
+> **Idée.** Au lieu de projeter des triangles puis d'éclairer chaque pixel a posteriori, on tire un rayon depuis la caméra à travers chaque pixel et on regarde ce qu'il rencontre dans la scène. C'est l'inverse mathématique de la propagation réelle de la lumière (les photons physiques partent des sources, pas de l'œil), mais comme la BRDF est **symétrique** par rapport aux deux directions, les deux formulations donnent le même résultat.
 
 Pour un rayon $R(t) = \mathbf{O} + t\,\mathbf{D}$ et une sphère $\|\mathbf{P} - \mathbf{C}\|^2 = r^2$, l'intersection se résout par une simple équation du second degré :
 
@@ -2078,7 +2078,7 @@ La règle de Cramer combinée à l'identité du **produit mixte** $(\mathbf{a} \
 t = \frac{\mathbf{q} \cdot \mathbf{e}_2}{\mathbf{p} \cdot \mathbf{e}_1}, \qquad u = \frac{\mathbf{p} \cdot \mathbf{T}}{\mathbf{p} \cdot \mathbf{e}_1}, \qquad v = \frac{\mathbf{q} \cdot \mathbf{D}}{\mathbf{p} \cdot \mathbf{e}_1}
 ```
 
-Le triangle est touché si $\mathbf{p} \cdot \mathbf{e}_1 \ne 0$ (rayon non parallèle), $u \ge 0$, $v \ge 0$, $u + v \le 1$ et $t > t_\text{min}$. Coût : 5 produits scalaires, 2 produits vectoriels, 1 division — soit ~30 flops par test. Les GPUs RTX/RDNA2+ embarquent une unité matérielle (**RT cores**) qui accélère ce test des centaines de fois et le combine avec une descente dans la **BVH** (*Bounding Volume Hierarchy* — arbre dont chaque nœud englobe ses enfants dans une boîte AABB ; pour tester un rayon contre 1 million de triangles, on commence par tester la racine, puis on descend récursivement seulement dans les enfants intersectés, ce qui réduit la complexité de $O(n)$ à $O(\log n)$ par rayon).
+Le triangle est touché si $\mathbf{p} \cdot \mathbf{e}_1 \ne 0$ (rayon non parallèle), $u \ge 0$, $v \ge 0$, $u + v \le 1$ et $t > t_\text{min}$. Le coût se résume à 5 produits scalaires, 2 produits vectoriels et 1 division, soit une trentaine de flops par test. Les GPUs RTX et RDNA2+ embarquent une unité matérielle dédiée (les **RT cores**) qui exécute ce test directement en silicium et l'enchaîne avec une descente dans la **BVH** (*Bounding Volume Hierarchy* — arbre dont chaque nœud englobe ses enfants dans une boîte AABB ; pour tester un rayon contre un million de triangles, on commence par tester la racine, puis on descend récursivement seulement dans les enfants intersectés, ce qui réduit la complexité de $O(n)$ à $O(\log n)$ par rayon).
 
 > **Structures spatiales d'accélération.** Quand on a beaucoup d'objets ou de triangles à tester (collision, ray tracing, culling), on les organise dans une structure hiérarchique :
 >
