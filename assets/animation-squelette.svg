@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+  <rect width="720" height="380" rx="14" fill="#fbfdff"/>
+  <rect x="1" y="1" width="718" height="378" rx="14" fill="none" stroke="#e2e8f0"/>
+  <text x="360" y="32" text-anchor="middle" font-size="19" font-weight="700" fill="#1b2a4a">Animation par squelette : bouger un os entraîne tous ses enfants</text>
+
+  <g transform="translate(200,92)">
+    <g>
+      <animateTransform attributeName="transform" type="rotate" values="-18;16;-18" keyTimes="0;0.5;1" dur="3.6s" repeatCount="indefinite"/>
+      <line x1="0" y1="0" x2="0" y2="86" stroke="#bfdbfe" stroke-width="22" stroke-linecap="round" opacity="0.55"/><line x1="0" y1="0" x2="0" y2="86" stroke="#334155" stroke-width="3.5"/><circle cx="0" cy="0" r="6" fill="#fff" stroke="#334155" stroke-width="2.5"/>
+      <g transform="translate(0,86)">
+        <g>
+          <animateTransform attributeName="transform" type="rotate" values="10;70;10" keyTimes="0;0.5;1" dur="3.6s" repeatCount="indefinite"/>
+          <line x1="0" y1="0" x2="0" y2="76" stroke="#bbf7d0" stroke-width="22" stroke-linecap="round" opacity="0.55"/><line x1="0" y1="0" x2="0" y2="76" stroke="#334155" stroke-width="3.5"/><circle cx="0" cy="0" r="6" fill="#fff" stroke="#334155" stroke-width="2.5"/>
+          <g transform="translate(0,76)">
+            <g>
+              <animateTransform attributeName="transform" type="rotate" values="-8;42;-8" keyTimes="0;0.5;1" dur="3.6s" repeatCount="indefinite"/>
+              <line x1="0" y1="0" x2="0" y2="42" stroke="#fde68a" stroke-width="22" stroke-linecap="round" opacity="0.55"/><line x1="0" y1="0" x2="0" y2="42" stroke="#334155" stroke-width="3.5"/><circle cx="0" cy="0" r="6" fill="#fff" stroke="#334155" stroke-width="2.5"/>
+              <circle cx="0" cy="42" r="7" fill="#f59e0b" stroke="#b45309" stroke-width="2"/>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  <circle cx="200" cy="92" r="6.5" fill="#1b2a4a"/>
+  <text x="186" y="82" text-anchor="end" font-size="12.5" font-weight="700" fill="#1b2a4a">racine</text>
+
+  <rect x="556" y="120" width="16" height="16" rx="3" fill="#bfdbfe" stroke="#475569"/><text x="580" y="133" font-size="12.5" fill="#1b2a4a">bras (parent)</text>
+  <rect x="556" y="150" width="16" height="16" rx="3" fill="#bbf7d0" stroke="#475569"/><text x="580" y="163" font-size="12.5" fill="#1b2a4a">avant-bras (enfant)</text>
+  <rect x="556" y="180" width="16" height="16" rx="3" fill="#fde68a" stroke="#475569"/><text x="580" y="193" font-size="12.5" fill="#1b2a4a">main (petit-enfant)</text>
+  <text x="556" y="222" font-size="11.5" fill="#64748b">La racine ne bouge pas ;</text>
+  <text x="556" y="239" font-size="11.5" fill="#64748b">tout le reste pend dessous.</text>
+
+  <text x="360" y="348" text-anchor="middle" font-size="12.5" fill="#1b2a4a">Quand le bras pivote, l'avant-bras et la main suivent : chaque os hérite du mouvement de son parent.</text>
+  <text x="360" y="367" text-anchor="middle" font-size="12.5" fill="#64748b">C'est ce qu'enchaîne T_global = T_parent · T_local, de la racine jusqu'aux doigts.</text>
+</svg>

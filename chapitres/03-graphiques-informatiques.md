@@ -225,6 +225,8 @@ C_\text{sRGB} = \begin{cases} 12{,}92\,C_\text{lin} & \text{si } C_\text{lin} \l
 
 Si l'on regarde l'effet d'ensemble, cette courbe se comporte à peu près comme une puissance $`2{,}4`$, ce qui revient en moyenne à un gamma d'environ $`2{,}2`$ : voilà pourquoi l'approximation simple marche bien. Bonne nouvelle : la **carte graphique** ( **GPU** ) sait faire cette conversion exacte toute seule, gratuitement.
 
+![Courbe sRGB : la valeur stockée 0,5 ne vaut que 21 % de lumière physique réelle, la courbe orange plongeant sous la diagonale ; les calculs d'éclairage se font donc en espace linéaire](../assets/courbe-srgb.svg)
+
 > **Que veulent dire « GPU », « sampler » et « hardware » ?** Le **GPU** ( de l'anglais *Graphics Processing Unit* ) est la puce de l'ordinateur spécialisée dans les images, le moteur graphique de la machine. Un **sampler** est le petit lecteur qui va « piocher » une couleur dans une texture. **Hardware** veut dire « matériel », par opposition au logiciel : quand une opération est faite « en hardware », c'est le circuit électronique lui-même qui s'en charge, donc instantanément et sans ralentir le jeu. Quand on choisit un format marqué `*_SRGB` ( par exemple `RGBA8_SRGB` ) , le GPU applique la bonne courbe automatiquement.
 
 Voici maintenant un petit dictionnaire des mots qui reviennent sans cesse dans la fabrication d'une image. Pas besoin de tout retenir d'un coup : revenez-y quand un mot vous échappe.

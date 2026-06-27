@@ -169,6 +169,8 @@ L'idée géniale de A\* est d'additionner ces deux morceaux : « le chemin déj�
 
 > **Que veut dire « étendre » un nœud ?** Cela veut dire « regarder ses voisins » : une fois qu'on examine un nœud, on note tous les nœuds reliés à lui, pour pouvoir continuer le chemin par l'un d'eux. On dit aussi « développer » ce nœud.
 
+![Recherche de chemin A* sur une grille : une case de départ, une case but, un mur, les cases examinées et le chemin trouvé, avec le score f égale g plus h annoté sur une case](../assets/pathfinding-a-etoile.svg)
+
 #### Pourquoi l'admissibilité de l'heuristique compte
 
 Tout repose sur une qualité de l'heuristique : elle doit être **admissible**.

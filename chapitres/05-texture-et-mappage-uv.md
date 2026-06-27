@@ -93,6 +93,8 @@ On choisit la méthode de mappage selon la **forme** de l'objet, car aucune mét
 
    C'est exactement la méthode des cartes de géographie, ou d'un patron de couture : on découpe le relief le long de coutures bien choisies pour pouvoir l'étaler à plat sans le froisser. Parce que chaque morceau est presque plat, l'image se pose dessus sans presque se déformer : c'est la technique qui donne les distorsions les plus faibles. En contrepartie, bien placer les coupures demande un travail soigné, le plus souvent à la main, ce qui prend du temps mais offre le plus beau résultat.
 
+![Dépliage UV : un cube 3D découpé le long de ses arêtes puis aplati en patron sur l'image 2D, chaque face recevant sa zone dans l'atlas UV repéré par les coordonnées (0, 0) et (1, 1)](../assets/depliage-uv.svg)
+
 Le tableau ci-dessous résume quelle méthode convient à quelle forme.
 
 | Méthode | Forme idéale | Point faible |

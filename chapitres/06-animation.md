@@ -40,6 +40,8 @@ T_\text{global} = T_\text{parent} \cdot T_\text{local}
 
 Animer le squelette, c'est tout simplement changer les matrices locales $`T_\text{local}`$ au fil du temps : à chaque image, on plie un peu plus le coude, on tourne un peu plus la tête, et le mouvement apparaît.
 
+![Animation par squelette : une chaîne d'os parent puis enfant qui se plie, la main suivant l'avant-bras qui suit le bras, ce qu'enchaîne la multiplication T global égale T parent fois T local de la racine jusqu'aux doigts](../assets/animation-squelette.svg)
+
 ### Animation de forme
 
 Le squelette est parfait pour des membres rigides qui pivotent, mais il devient maladroit pour une bouche qui sourit ou un sourcil qui se fronce : la peau du visage se déforme dans tous les sens, sans os bien net pour la commander. Pour ces cas-là, on utilise une autre recette. On sculpte d'avance plusieurs versions complètes de l'objet (un visage neutre, le même visage souriant, le même visage surpris) et on glisse en douceur de l'une à l'autre, comme un visage qui se métamorphose lentement dans un dessin animé.
