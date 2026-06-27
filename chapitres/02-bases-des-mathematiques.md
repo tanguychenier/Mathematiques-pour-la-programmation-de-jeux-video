@@ -600,6 +600,8 @@ La forme la plus simple, l'interpolation **linéaire**, relie deux valeurs $`A`$
 \mathrm{lerp}(A, B, t) = (1 - t) \cdot A + t \cdot B = A + t \cdot (B - A)
 ```
 
+![Interpolation linéaire : un point glisse régulièrement du point A (t égal 0) au point B (t égal 1), sa position étant un mélange dosé des deux selon t](../assets/interpolation-lerp.svg)
+
 > **Que veut dire « LERP » et « linéaire » ?** « LERP » est l'abréviation de l'anglais *linear interpolation*. « Linéaire » veut dire « en ligne droite, à vitesse constante » : on avance de $`A`$ vers $`B`$ régulièrement, sans accélérer ni ralentir.
 
 > **Le paramètre $`t`$ et la notation $`t \in [0, 1]`$.** $`t`$ est un curseur de réglage, comme un bouton qui coulisse. Le symbole $`\in`$ se lit « appartient à » ; $`t \in [0, 1]`$ veut donc dire « $`t`$ est un nombre entre 0 et 1, bornes comprises ». À 0 on est au début, à 1 à la fin.
