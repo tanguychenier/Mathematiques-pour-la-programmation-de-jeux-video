@@ -497,7 +497,7 @@ T_i = \frac{P_{i+1} - P_{i-1}}{2}
 
 Conséquence : la courbe **passe exactement par chaque point de contrôle** (interpolante, pas approximante comme Bézier) et reste $`C^1`$ continue.
 
-> **Notation $`C^k`$.** Une courbe est dite *de classe $`C^0`$* si elle est continue (pas de saut), *$`C^1`$* si en plus sa dérivée est continue (pas de cassure de pente), *$`C^2`$* si la dérivée seconde l'est aussi (la courbure varie sans à-coup). Pour une caméra qui glisse le long d'une spline, on cherche au minimum $`C^1`$ pour éviter les changements brusques de direction, et idéalement $`C^2`$ pour que l'accélération ressentie reste lisse.
+> **Notation $`C^k`$.** Une courbe est dite de classe $`C^0`$ si elle est continue (pas de saut), de classe $`C^1`$ si en plus sa dérivée est continue (pas de cassure de pente), de classe $`C^2`$ si la dérivée seconde l'est aussi (la courbure varie sans à-coup). Pour une caméra qui glisse le long d'une spline, on cherche au minimum $`C^1`$ pour éviter les changements brusques de direction, et idéalement $`C^2`$ pour que l'accélération ressentie reste lisse.
 
 C'est une des splines les plus utilisées pour les trajectoires de caméra, les chemins de waypoints et l'animation de spline-IK. La variante **Catmull-Rom centripète** (paramétrisation $`t_{i+1} = t_i + \|P_{i+1} - P_i\|^{1/2}`$) supprime les boucles parasites quand deux points sont très proches ; c'est cette variante qui est retenue par défaut dans les *splines actor* d'Unreal Engine.
 
