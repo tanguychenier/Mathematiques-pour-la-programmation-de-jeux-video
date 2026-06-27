@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="rr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#ea580c"/></marker>
+  </defs>
+  <rect width="720" height="380" rx="14" fill="#fbfdff"/>
+  <rect x="1" y="1" width="718" height="378" rx="14" fill="none" stroke="#e2e8f0"/>
+  <text x="360" y="32" text-anchor="middle" font-size="19" font-weight="700" fill="#1b2a4a">La rotation : faire pivoter un objet d'un angle θ</text>
+  <text x="360" y="53" text-anchor="middle" font-size="12.5" fill="#64748b">Chaque point tourne autour de l'origine en gardant sa distance au centre. C'est ainsi qu'un sprite ou un personnage pivote.</text>
+
+  <line x1="140" y1="215" x2="460" y2="215" stroke="#e2e8f0" stroke-width="1.5"/>
+  <line x1="290" y1="335" x2="290" y2="65" stroke="#e2e8f0" stroke-width="1.5"/>
+  <circle cx="290" cy="215" r="135" fill="none" stroke="#f1f5f9" stroke-width="1.5"/>
+
+  <line x1="290" y1="215" x2="425" y2="215" stroke="#94a3b8" stroke-width="2.5" stroke-dasharray="5 4"/>
+  <text x="431" y="231" font-size="12" fill="#94a3b8">départ (angle 0)</text>
+
+  <path d="M 334 215 A 44 44 0 0 1 317 180" fill="none" stroke="#0f766e" stroke-width="2"/>
+  <text x="348" y="191" font-size="15" fill="#0f766e" font-weight="700">θ</text>
+
+  <g>
+    <line x1="290" y1="215" x2="425" y2="215" stroke="#ea580c" stroke-width="4" marker-end="url(#rr)"/>
+    <animateTransform attributeName="transform" attributeType="XML" type="rotate" values="0 290 215;0 290 215;-52 290 215;-52 290 215;0 290 215" keyTimes="0;0.12;0.5;0.88;1" dur="6.0s" repeatCount="indefinite" calcMode="spline" keySplines="0 0 1 1;0.4 0 0.2 1;0 0 1 1;0.4 0 0.2 1"/>
+  </g>
+  <circle cx="290" cy="215" r="4" fill="#475569"/>
+
+  <rect x="468" y="120" width="232" height="120" rx="10" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="584" y="146" text-anchor="middle" font-size="12.5" fill="#1b2a4a">Le point (x, y) devient (x', y') :</text>
+  <text x="584" y="176" text-anchor="middle" font-size="14" fill="#1b2a4a">x' = x·cos θ − y·sin θ</text>
+  <text x="584" y="200" text-anchor="middle" font-size="14" fill="#1b2a4a">y' = x·sin θ + y·cos θ</text>
+  <text x="584" y="226" text-anchor="middle" font-size="11" fill="#94a3b8">(cos et sin mélangent les deux axes)</text>
+
+  <text x="360" y="358" text-anchor="middle" font-size="12.5" fill="#1b2a4a">cos et sin disent quelle part de l'ancien x et de l'ancien y composent les nouvelles coordonnées après le pivot.</text>
+</svg>

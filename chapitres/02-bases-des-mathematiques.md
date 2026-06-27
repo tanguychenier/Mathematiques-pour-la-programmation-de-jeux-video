@@ -917,6 +917,8 @@ La **rotation** fait pivoter un objet autour d'un point ou d'un axe, sans le dé
 
 > **Que veut dire « rotation » ?** C'est l'action de tourner autour d'un axe, comme une toupie autour de son pied, ou une porte autour de ses gonds. L'objet change d'orientation mais reste au même endroit et de la même taille.
 
+![Rotation d'un vecteur d'un angle thêta autour de l'origine : le point garde sa distance au centre, et ses nouvelles coordonnées se calculent avec le cosinus et le sinus de l'angle](../assets/rotation-2d.svg)
+
 Les neuf nombres $`r_{11}`$ à $`r_{33}`$ sont les coefficients qui décrivent précisément la rotation. On peut les obtenir soit à partir des angles de rotation autour de chacun des axes $`x`$, $`y`$ et $`z`$, soit en se donnant un axe de rotation et un angle.
 
 Par exemple, faire tourner d'un angle $`\theta`$ autour de l'axe $`z`$ (l'axe vertical, comme un manège qui tourne) donne :
