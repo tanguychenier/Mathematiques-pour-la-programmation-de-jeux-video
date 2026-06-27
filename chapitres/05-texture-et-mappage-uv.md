@@ -10,7 +10,7 @@ Elles peuvent être utilisées pour représenter la **couleur** de base d'un obj
 
 Les **coordonnées de texture**, également appelées **coordonnées UV**, déterminent la manière dont une texture est mappée sur un objet 3D.
 
-Pour appliquer une texture à un objet 3D, on attribue à chaque sommet de l'objet un ensemble de coordonnées UV, qui correspondent aux coordonnées $(u, v)$ dans l'image de texture. Les coordonnées UV varient généralement de $0$ à $1$. La convention de l'origine diffère selon l'API graphique : en OpenGL, $(0, 0)$ est le coin **inférieur gauche** ; en DirectX/Direct3D et dans la majorité des moteurs, $(0, 0)$ est le coin **supérieur gauche**. Cette différence explique souvent les textures qui apparaissent à l'envers verticalement lors d'un portage entre APIs.
+Pour appliquer une texture à un objet 3D, on attribue à chaque sommet de l'objet un ensemble de coordonnées UV, qui correspondent aux coordonnées $`(u, v)`$ dans l'image de texture. Les coordonnées UV varient généralement de $`0`$ à $`1`$. La convention de l'origine diffère selon l'API graphique : en OpenGL, $`(0, 0)`$ est le coin **inférieur gauche** ; en DirectX/Direct3D et dans la majorité des moteurs, $`(0, 0)`$ est le coin **supérieur gauche**. Cette différence explique souvent les textures qui apparaissent à l'envers verticalement lors d'un portage entre APIs.
 
 ### Mappage UV
 

@@ -31,7 +31,7 @@ F --> O[Output merger]
 Le **culling** et l'**occlusion** sont des techniques utilisées pour optimiser le rendu graphique en éliminant les objets ou les parties d'objets qui ne sont pas visibles à l'écran.
 
 - Le **culling** se concentre sur l'élimination des **objets entiers** qui sont en dehors du champ de vision de la caméra (*frustum culling*) ou orientés à l'opposé (*backface culling*).
-- L'**occlusion** élimine les **parties d'objets** qui sont cachées derrière d'autres objets (*occlusion culling*, *Z-buffer*, *Hi-Z* — pour *Hierarchical-Z*, version pyramide du Z-buffer où chaque niveau garde la profondeur la plus lointaine d'un bloc de $2 \times 2$ pixels du niveau inférieur, ce qui permet de rejeter une tuile entière sans tester chaque pixel).
+- L'**occlusion** élimine les **parties d'objets** qui sont cachées derrière d'autres objets (*occlusion culling*, *Z-buffer*, *Hi-Z* — pour *Hierarchical-Z*, version pyramide du Z-buffer où chaque niveau garde la profondeur la plus lointaine d'un bloc de $`2 \times 2`$ pixels du niveau inférieur, ce qui permet de rejeter une tuile entière sans tester chaque pixel).
 
 > **Vocabulaire indispensable du pipeline.**
 >
@@ -39,8 +39,8 @@ Le **culling** et l'**occlusion** sont des techniques utilisées pour optimiser 
 > - **Rasterization** (français : *rastérisation*, *matricage*) : étape qui convertit les triangles 3D projetés en pixels (plus précisément en *fragments*) sur la grille de l'écran. Le matériel qui s'en charge sur le GPU s'appelle le **rasterizer**.
 > - **Z-buffer** (alias **depth buffer**, tampon de profondeur) : tableau de la même taille que l'écran qui stocke, pour chaque pixel, la profondeur du fragment le plus proche déjà dessiné. Avant d'écrire un nouveau fragment, le GPU compare sa profondeur au Z-buffer ; s'il est plus loin, il est rejeté. C'est la solution standard au problème de l'**occlusion** depuis Edwin Catmull (1974).
 > - **Texel** (*texture pixel*) : un pixel d'une **texture** (par opposition à un pixel d'écran). Pour appliquer une texture sur un triangle, le sampler GPU lit un ou plusieurs texels et les combine selon le mode de filtrage (nearest, bilinear, trilinear, anisotrope).
-> - **Coordonnées homogènes** : voir la section sur la translation — astuce qui ajoute une 4ᵉ composante $w$ pour que **toutes** les transformations affines (translation incluse) s'expriment comme un produit matrice 4×4.
-> - **Coordonnées barycentriques** : voir la section *Fragment shader* — un triplet $(\alpha, \beta, \gamma)$ avec $\alpha + \beta + \gamma = 1$ qui repère un point à l'intérieur d'un triangle par son poids relatif sur les trois sommets ; c'est ce qui permet d'**interpoler** les attributs (couleur, UV, normale) à l'intérieur du triangle.
+> - **Coordonnées homogènes** : voir la section sur la translation — astuce qui ajoute une 4ᵉ composante $`w`$ pour que **toutes** les transformations affines (translation incluse) s'expriment comme un produit matrice 4×4.
+> - **Coordonnées barycentriques** : voir la section *Fragment shader* — un triplet $`(\alpha, \beta, \gamma)`$ avec $`\alpha + \beta + \gamma = 1`$ qui repère un point à l'intérieur d'un triangle par son poids relatif sur les trois sommets ; c'est ce qui permet d'**interpoler** les attributs (couleur, UV, normale) à l'intérieur du triangle.
 
 ```mermaid
 graph LR
@@ -76,27 +76,27 @@ Les [vertex](https://github.com/tanguychenier/Terminal_3DEngine) shaders sont de
 
 ##### Fonctionnement du vertex shader
 
-Chaque sommet est représenté par un vecteur de position homogène $\mathbf{v}_h$, qui peut être transformé en un nouveau vecteur de position homogène $\mathbf{v}'_h$ par l'application d'une matrice de transformation homogène $M_{VS}$ représentant le vertex shader :
+Chaque sommet est représenté par un vecteur de position homogène $`\mathbf{v}_h`$, qui peut être transformé en un nouveau vecteur de position homogène $`\mathbf{v}'_h`$ par l'application d'une matrice de transformation homogène $`M_{VS}`$ représentant le vertex shader :
 
 ```math
 \mathbf{v}'_h = M_{VS} \, \mathbf{v}_h
 ```
 
-La matrice de transformation $M_{VS}$ peut être construite en combinant plusieurs types de transformations linéaires, telles que la translation, la rotation et la mise à l'échelle. Ces transformations peuvent être représentées par des matrices de transformation homogène 4×4.
+La matrice de transformation $`M_{VS}`$ peut être construite en combinant plusieurs types de transformations linéaires, telles que la translation, la rotation et la mise à l'échelle. Ces transformations peuvent être représentées par des matrices de transformation homogène 4×4.
 
-Par exemple, pour effectuer une translation de vecteur $\mathbf{t} = (t_x, t_y, t_z)$, on peut construire la matrice de translation homogène $T$ :
+Par exemple, pour effectuer une translation de vecteur $`\mathbf{t} = (t_x, t_y, t_z)`$, on peut construire la matrice de translation homogène $`T`$ :
 
 ```math
 T = \begin{pmatrix} 1 & 0 & 0 & t_x \\ 0 & 1 & 0 & t_y \\ 0 & 0 & 1 & t_z \\ 0 & 0 & 0 & 1 \end{pmatrix}
 ```
 
-On peut ensuite combiner plusieurs transformations en multipliant les matrices correspondantes. Par exemple, pour effectuer une translation suivie d'une rotation autour de l'axe des $y$ d'un angle $\theta$ :
+On peut ensuite combiner plusieurs transformations en multipliant les matrices correspondantes. Par exemple, pour effectuer une translation suivie d'une rotation autour de l'axe des $`y`$ d'un angle $`\theta`$ :
 
 ```math
 M_{VS} = R_y(\theta) \cdot T
 ```
 
-où $R_y(\theta)$ est la matrice de rotation homogène autour de l'axe des $y$.
+où $`R_y(\theta)`$ est la matrice de rotation homogène autour de l'axe des $`y`$.
 
 ##### Pipeline de données
 
@@ -119,9 +119,9 @@ Cette étape est facultative et peut être utilisée pour réaliser des effets c
 
 ##### Fonctionnement du geometry shader
 
-Considérons un exemple simple pour illustrer le fonctionnement des geometry shaders. Soit une ligne définie par deux points $A$ et $B$. Nous souhaitons **extruder** cette ligne pour former un tube de rayon $r$. Le geometry shader va générer un ensemble de triangles formant le tube.
+Considérons un exemple simple pour illustrer le fonctionnement des geometry shaders. Soit une ligne définie par deux points $`A`$ et $`B`$. Nous souhaitons **extruder** cette ligne pour former un tube de rayon $`r`$. Le geometry shader va générer un ensemble de triangles formant le tube.
 
-Soit $\vec{AB} = \vec{B} - \vec{A}$. Nous commençons par calculer un vecteur $\vec{u}$ orthogonal à $\vec{AB}$ :
+Soit $`\vec{AB} = \vec{B} - \vec{A}`$. Nous commençons par calculer un vecteur $`\vec{u}`$ orthogonal à $`\vec{AB}`$ :
 
 ```math
 \vec{u} = \begin{cases}
@@ -130,19 +130,19 @@ Soit $\vec{AB} = \vec{B} - \vec{A}$. Nous commençons par calculer un vecteur $\
 \end{cases}
 ```
 
-Ensuite, nous calculons un vecteur $\vec{v}$ orthogonal à $\vec{AB}$ et $\vec{u}$ en utilisant le produit vectoriel :
+Ensuite, nous calculons un vecteur $`\vec{v}`$ orthogonal à $`\vec{AB}`$ et $`\vec{u}`$ en utilisant le produit vectoriel :
 
 ```math
 \vec{v} = \vec{AB} \times \vec{u}
 ```
 
-Nous normalisons les vecteurs $\vec{u}$ et $\vec{v}$ :
+Nous normalisons les vecteurs $`\vec{u}`$ et $`\vec{v}`$ :
 
 ```math
 \hat{u} = \frac{\vec{u}}{\|\vec{u}\|}, \quad \hat{v} = \frac{\vec{v}}{\|\vec{v}\|}
 ```
 
-Soit $N$ le nombre de segments pour approximer le cercle du tube. Nous générons $N$ points $C_i$ et $D_i$ autour de chaque extrémité $A$ et $B$ :
+Soit $`N`$ le nombre de segments pour approximer le cercle du tube. Nous générons $`N`$ points $`C_i`$ et $`D_i`$ autour de chaque extrémité $`A`$ et $`B`$ :
 
 ```math
 C_i = \vec{A} + r \cos \frac{2 \pi i}{N} \hat{u} + r \sin \frac{2 \pi i}{N} \hat{v}, \quad i = 0, 1, \dots, N-1
@@ -152,21 +152,21 @@ C_i = \vec{A} + r \cos \frac{2 \pi i}{N} \hat{u} + r \sin \frac{2 \pi i}{N} \hat
 D_i = \vec{B} + r \cos \frac{2 \pi i}{N} \hat{u} + r \sin \frac{2 \pi i}{N} \hat{v}, \quad i = 0, 1, \dots, N-1
 ```
 
-Maintenant que nous avons les points autour de chaque extrémité, nous générons les triangles formant le tube. Pour chaque paire de points consécutifs $C_i$, $C_{i+1}$, $D_i$ et $D_{i+1}$, nous formons deux triangles : $(C_i, D_i, C_{i+1})$ et $(C_{i+1}, D_i, D_{i+1})$. Nous devons également traiter le cas où $i = N-1$ pour fermer le tube en connectant les points $C_0$, $C_{N-1}$, $D_0$ et $D_{N-1}$.
+Maintenant que nous avons les points autour de chaque extrémité, nous générons les triangles formant le tube. Pour chaque paire de points consécutifs $`C_i`$, $`C_{i+1}`$, $`D_i`$ et $`D_{i+1}`$, nous formons deux triangles : $`(C_i, D_i, C_{i+1})`$ et $`(C_{i+1}, D_i, D_{i+1})`$. Nous devons également traiter le cas où $`i = N-1`$ pour fermer le tube en connectant les points $`C_0`$, $`C_{N-1}`$, $`D_0`$ et $`D_{N-1}`$.
 
 ##### Démonstration
 
-Pour démontrer que l'extrusion décrite précédemment forme un tube autour de la ligne $AB$, nous devons montrer que chaque point $C_i$ et $D_i$ se trouve à une distance $r$ de la ligne et que les triangles générés décrivent un tube continu.
+Pour démontrer que l'extrusion décrite précédemment forme un tube autour de la ligne $`AB`$, nous devons montrer que chaque point $`C_i`$ et $`D_i`$ se trouve à une distance $`r`$ de la ligne et que les triangles générés décrivent un tube continu.
 
-###### Étape 1 — La distance entre chaque point $C_i$ et la ligne $AB$
+###### Étape 1 — La distance entre chaque point $`C_i`$ et la ligne $`AB`$
 
-Soit $M_i$ le point de la ligne $AB$ le plus proche de $C_i$. Le vecteur $\vec{M_i C_i}$ est orthogonal à $\vec{AB}$, donc leur produit scalaire est nul :
+Soit $`M_i`$ le point de la ligne $`AB`$ le plus proche de $`C_i`$. Le vecteur $`\vec{M_i C_i}`$ est orthogonal à $`\vec{AB}`$, donc leur produit scalaire est nul :
 
 ```math
 \vec{AB} \cdot \vec{M_i C_i} = 0
 ```
 
-En utilisant la définition des points $C_i$ :
+En utilisant la définition des points $`C_i`$ :
 
 ```math
 \vec{AB} \cdot \left(\vec{A} + r \cos \frac{2 \pi i}{N} \hat{u} + r \sin \frac{2 \pi i}{N} \hat{v} - \vec{A}\right) = 0
@@ -176,13 +176,13 @@ En utilisant la définition des points $C_i$ :
 \vec{AB} \cdot \left(r \cos \frac{2 \pi i}{N} \hat{u} + r \sin \frac{2 \pi i}{N} \hat{v}\right) = 0
 ```
 
-Comme $\hat{u}$ et $\hat{v}$ sont orthogonaux à $\vec{AB}$, cette équation est vérifiée. La distance entre $C_i$ et $AB$ est donc $r$.
+Comme $`\hat{u}`$ et $`\hat{v}`$ sont orthogonaux à $`\vec{AB}`$, cette équation est vérifiée. La distance entre $`C_i`$ et $`AB`$ est donc $`r`$.
 
 ###### Étape 2 — La continuité du tube
 
-Nous avons généré les triangles en connectant chaque paire de points consécutifs $C_i$, $C_{i+1}$, $D_i$ et $D_{i+1}$. Comme les points sont générés en suivant un cercle autour de chaque extrémité, cela garantit que les triangles forment un tube continu autour de la ligne $AB$. Le cas où $i = N-1$ permet de fermer le tube en connectant les points initiaux et finaux.
+Nous avons généré les triangles en connectant chaque paire de points consécutifs $`C_i`$, $`C_{i+1}`$, $`D_i`$ et $`D_{i+1}`$. Comme les points sont générés en suivant un cercle autour de chaque extrémité, cela garantit que les triangles forment un tube continu autour de la ligne $`AB`$. Le cas où $`i = N-1`$ permet de fermer le tube en connectant les points initiaux et finaux.
 
-En conclusion, l'extrusion décrite forme un tube de rayon $r$ autour de la ligne $AB$, et les triangles générés décrivent un tube continu. ∎
+En conclusion, l'extrusion décrite forme un tube de rayon $`r`$ autour de la ligne $`AB`$, et les triangles générés décrivent un tube continu. ∎
 
 #### Fragment shaders
 
@@ -196,17 +196,17 @@ Les **fragment shaders** permettent de déterminer la **couleur finale** de chaq
 
 Lorsque les sommets sont transformés par le vertex shader, ils sont accompagnés d'attributs tels que les coordonnées de texture, les normales et les couleurs. Ces attributs sont ensuite **interpolés** pour chaque fragment à l'intérieur du triangle.
 
-Soit $A$, $B$ et $C$ les sommets du triangle avec leurs attributs respectifs $A_a$, $B_a$ et $C_a$. Pour un fragment $F$ à l'intérieur du triangle, les attributs interpolés $F_a$ sont déterminés en utilisant les **coordonnées barycentriques** $\alpha$, $\beta$ et $\gamma$ :
+Soit $`A`$, $`B`$ et $`C`$ les sommets du triangle avec leurs attributs respectifs $`A_a`$, $`B_a`$ et $`C_a`$. Pour un fragment $`F`$ à l'intérieur du triangle, les attributs interpolés $`F_a`$ sont déterminés en utilisant les **coordonnées barycentriques** $`\alpha`$, $`\beta`$ et $`\gamma`$ :
 
 ```math
 F_a = \alpha A_a + \beta B_a + \gamma C_a
 ```
 
-avec $\alpha + \beta + \gamma = 1$ et $0 \leq \alpha, \beta, \gamma \leq 1$.
+avec $`\alpha + \beta + \gamma = 1`$ et $`0 \leq \alpha, \beta, \gamma \leq 1`$.
 
 ##### 2. Calcul de l'éclairage
 
-Le fragment shader doit également prendre en compte l'éclairage de la scène pour déterminer la couleur finale du fragment. Soit $L$ la direction de la source de lumière, $N$ la normale au fragment et $V$ la direction de la caméra. La couleur finale $C_f$ est déterminée en utilisant l'**équation de Phong**, qui est une combinaison de la composante ambiante, diffuse et spéculaire :
+Le fragment shader doit également prendre en compte l'éclairage de la scène pour déterminer la couleur finale du fragment. Soit $`L`$ la direction de la source de lumière, $`N`$ la normale au fragment et $`V`$ la direction de la caméra. La couleur finale $`C_f`$ est déterminée en utilisant l'**équation de Phong**, qui est une combinaison de la composante ambiante, diffuse et spéculaire :
 
 ```math
 C_f = k_a I_a + k_d \max(N \cdot L,\, 0)\, I_d + k_s \max(R \cdot V,\, 0)^n I_s
@@ -214,21 +214,21 @@ C_f = k_a I_a + k_d \max(N \cdot L,\, 0)\, I_d + k_s \max(R \cdot V,\, 0)^n I_s
 
 où :
 
-- $k_a$, $k_d$, $k_s$ sont les coefficients d'éclairage ambiant, diffus et spéculaire ;
-- $I_a$, $I_d$, $I_s$ sont les intensités de lumière ambiante, diffuse et spéculaire ;
-- $R$ est la direction de réflexion de la lumière (symétrique de $L$ par rapport à $N$) ;
-- $n$ est l'**exposant de brillance** (*shininess*) ;
-- le $\max(\cdot,\, 0)$ clamp évite une contribution négative de la lumière quand le point est dans l'ombre (lumière derrière la surface).
+- $`k_a`$, $`k_d`$, $`k_s`$ sont les coefficients d'éclairage ambiant, diffus et spéculaire ;
+- $`I_a`$, $`I_d`$, $`I_s`$ sont les intensités de lumière ambiante, diffuse et spéculaire ;
+- $`R`$ est la direction de réflexion de la lumière (symétrique de $`L`$ par rapport à $`N`$) ;
+- $`n`$ est l'**exposant de brillance** (*shininess*) ;
+- le $`\max(\cdot,\, 0)`$ clamp évite une contribution négative de la lumière quand le point est dans l'ombre (lumière derrière la surface).
 
 ##### 3. Application des textures
 
-Les fragment shaders peuvent également utiliser des textures pour déterminer la couleur finale du fragment. Soit $T(u, v)$ la couleur de la texture aux coordonnées de texture $(u, v)$. La couleur finale $C_t$ du fragment est alors déterminée en modulant la couleur interpolée $F_a$ avec la couleur de la texture :
+Les fragment shaders peuvent également utiliser des textures pour déterminer la couleur finale du fragment. Soit $`T(u, v)`$ la couleur de la texture aux coordonnées de texture $`(u, v)`$. La couleur finale $`C_t`$ du fragment est alors déterminée en modulant la couleur interpolée $`F_a`$ avec la couleur de la texture :
 
 ```math
 C_t = F_a \odot T(u, v)
 ```
 
-où $\odot$ représente le **produit terme à terme** (modulation) des composantes de couleur.
+où $`\odot`$ représente le **produit terme à terme** (modulation) des composantes de couleur.
 
 ##### 4. Combinaison des couleurs
 
@@ -238,11 +238,11 @@ Finalement, la couleur finale du fragment est déterminée en combinant les coul
 C_{\text{final}} = C_f \odot C_t
 ```
 
-Cette couleur finale $C_{\text{final}}$ est ensuite utilisée pour déterminer la couleur du pixel à afficher à l'écran.
+Cette couleur finale $`C_{\text{final}}`$ est ensuite utilisée pour déterminer la couleur du pixel à afficher à l'écran.
 
 ##### 5. Transparence
 
-Les fragment shaders peuvent également gérer la **transparence** des objets. Pour cela, ils utilisent une valeur **alpha** pour chaque fragment, qui détermine l'opacité de ce fragment. La couleur finale $C_f$ du fragment est alors combinée avec la couleur du fond $C_b$ en utilisant la valeur alpha $a$ pour obtenir la couleur du pixel à afficher :
+Les fragment shaders peuvent également gérer la **transparence** des objets. Pour cela, ils utilisent une valeur **alpha** pour chaque fragment, qui détermine l'opacité de ce fragment. La couleur finale $`C_f`$ du fragment est alors combinée avec la couleur du fond $`C_b`$ en utilisant la valeur alpha $`a`$ pour obtenir la couleur du pixel à afficher :
 
 ```math
 C_{\text{pixel}} = a\,C_f + (1 - a)\,C_b
@@ -256,7 +256,7 @@ Par exemple, pour créer une ombre, la couleur finale du fragment peut être mul
 
 ###### Flou gaussien
 
-La couleur finale $C_f$ peut être calculée en utilisant une **somme pondérée** de la couleur des fragments environnants :
+La couleur finale $`C_f`$ peut être calculée en utilisant une **somme pondérée** de la couleur des fragments environnants :
 
 > Une somme pondérée est une somme dans laquelle chaque terme est multiplié par un poids spécifique. Les couleurs sont représentées par des valeurs numériques, qui peuvent être considérées comme des « substances » numériques que l'on pondère.
 
@@ -266,7 +266,7 @@ C_f(x, y) = \sum_{i=-k}^{k} \sum_{j=-k}^{k} G(i, j;\,\sigma) \cdot C(x+i, y+j)
 G(i, j;\,\sigma) = \frac{1}{2\pi\sigma^2}\,e^{-\frac{i^2+j^2}{2\sigma^2}}
 ```
 
-où $\sigma$ est l'écart-type de la distribution gaussienne, $k$ est la demi-taille du filtre et $G(i, j;\sigma)$ est le noyau gaussien 2D centré en $(0,0)$. En pratique on précalcule et normalise ces poids pour que leur somme vaille exactement 1 sur la fenêtre finie $[-k, k]^2$.
+où $`\sigma`$ est l'écart-type de la distribution gaussienne, $`k`$ est la demi-taille du filtre et $`G(i, j;\sigma)`$ est le noyau gaussien 2D centré en $`(0,0)`$. En pratique on précalcule et normalise ces poids pour que leur somme vaille exactement 1 sur la fenêtre finie $`[-k, k]^2`$.
 
 ##### Exemple complet — un fragment shader Phong en GLSL
 

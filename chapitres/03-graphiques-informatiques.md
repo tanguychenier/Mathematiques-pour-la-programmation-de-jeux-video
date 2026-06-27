@@ -26,13 +26,13 @@ Les formes géométriques peuvent être de différentes sortes : des lignes droi
 
 ##### Exemple
 
-**Exemple.** Prenons un cercle de rayon $r$ centré en $(x_c, y_c)$ sur un plan cartésien. Sa représentation mathématique est donnée par l'équation suivante :
+**Exemple.** Prenons un cercle de rayon $`r`$ centré en $`(x_c, y_c)`$ sur un plan cartésien. Sa représentation mathématique est donnée par l'équation suivante :
 
 ```math
 (x - x_c)^2 + (y - y_c)^2 = r^2
 ```
 
-Pour représenter ce cercle dans une image vectorielle, on utilise une équation paramétrique qui décrit chaque point $(x, y)$ de la forme comme une fonction de son angle $\theta$ :
+Pour représenter ce cercle dans une image vectorielle, on utilise une équation paramétrique qui décrit chaque point $`(x, y)`$ de la forme comme une fonction de son angle $`\theta`$ :
 
 ```math
 x = x_c + r \cos \theta, \quad y = y_c + r \sin \theta
@@ -40,7 +40,7 @@ x = x_c + r \cos \theta, \quad y = y_c + r \sin \theta
 
 On peut ensuite relier ces points par des segments de ligne pour créer le cercle dans l'image vectorielle.
 
-Ainsi, pour un cercle de rayon $3$ centré en $(2, 2)$, l'équation mathématique est $(x - 2)^2 + (y - 2)^2 = 9$ et son équation paramétrique :
+Ainsi, pour un cercle de rayon $`3`$ centré en $`(2, 2)`$, l'équation mathématique est $`(x - 2)^2 + (y - 2)^2 = 9`$ et son équation paramétrique :
 
 ```math
 x = 2 + 3 \cos \theta
@@ -50,11 +50,11 @@ x = 2 + 3 \cos \theta
 y = 2 + 3 \sin \theta
 ```
 
-> $\cos$ et $\sin$ de $\theta$ sont utilisés ici, dans le cas du cercle, pour obtenir les valeurs $x$ et $y$ correspondant à chaque angle $\theta$ donné.
+> $`\cos`$ et $`\sin`$ de $`\theta`$ sont utilisés ici, dans le cas du cercle, pour obtenir les valeurs $`x`$ et $`y`$ correspondant à chaque angle $`\theta`$ donné.
 
-où $\theta$ est l'angle par rapport à l'origine du cercle.
+où $`\theta`$ est l'angle par rapport à l'origine du cercle.
 
-En prenant des valeurs différentes de $\theta$ (par exemple $\theta = 0, \pi/4, \pi/2, 3\pi/4, \pi, \ldots$), on calcule les coordonnées correspondantes $(x, y)$ et on relie ces points par des segments de ligne pour créer le cercle dans l'image vectorielle.
+En prenant des valeurs différentes de $`\theta`$ (par exemple $`\theta = 0, \pi/4, \pi/2, 3\pi/4, \pi, \ldots`$), on calcule les coordonnées correspondantes $`(x, y)`$ et on relie ces points par des segments de ligne pour créer le cercle dans l'image vectorielle.
 
 #### Bitmap
 
@@ -64,7 +64,7 @@ Les **graphiques bitmap**, également appelés images matricielles, sont créés
 
 Les images bitmap sont stockées sous forme de **matrice de pixels**, où chaque pixel est représenté par une valeur de couleur. Pour comprendre comment cela fonctionne, considérons un exemple simple : une image bitmap en noir et blanc de taille 4×4.
 
-Nous pouvons stocker cette image sous forme de matrice de pixels 4×4 où chaque pixel est représenté par un nombre binaire indiquant s'il est blanc ($0$) ou noir ($1$) :
+Nous pouvons stocker cette image sous forme de matrice de pixels 4×4 où chaque pixel est représenté par un nombre binaire indiquant s'il est blanc ($`0`$) ou noir ($`1`$) :
 
 ```math
 \begin{pmatrix} 0 & 1 & 0 & 1 \\ 1 & 0 & 1 & 0 \\ 0 & 1 & 0 & 1 \\ 1 & 0 & 1 & 0 \end{pmatrix}
@@ -82,25 +82,25 @@ La résolution et la profondeur de couleur sont deux concepts étroitement liés
 
 #### Résolution
 
-La résolution d'une image est définie par le nombre de pixels qu'elle contient horizontalement et verticalement, généralement noté $W \times H$ (par exemple, 800×600, signifiant 800 pixels de large pour 600 pixels de haut).
+La résolution d'une image est définie par le nombre de pixels qu'elle contient horizontalement et verticalement, généralement noté $`W \times H`$ (par exemple, 800×600, signifiant 800 pixels de large pour 600 pixels de haut).
 
-La résolution a des implications importantes sur la quantité de données requises pour stocker une image. Pour une image fixe avec une profondeur de couleur constante $b$, le nombre total de bits requis est donné par :
+La résolution a des implications importantes sur la quantité de données requises pour stocker une image. Pour une image fixe avec une profondeur de couleur constante $`b`$, le nombre total de bits requis est donné par :
 
 ```math
 N_\text{bits} = W \times H \times b
 ```
 
-où $W$ est la largeur, $H$ la hauteur et $b$ la profondeur de couleur en bits.
+où $`W`$ est la largeur, $`H`$ la hauteur et $`b`$ la profondeur de couleur en bits.
 
 La résolution a également un impact sur la **bande passante** requise pour transmettre des images en temps réel, comme c'est le cas dans les jeux vidéo : une résolution plus élevée nécessite plus de bande passante.
 
 #### Profondeur de couleur
 
-La profondeur de couleur, également appelée *bit depth*, représente le nombre de bits utilisés pour décrire la couleur d'un pixel, généralement noté $b$.
+La profondeur de couleur, également appelée *bit depth*, représente le nombre de bits utilisés pour décrire la couleur d'un pixel, généralement noté $`b`$.
 
-Une profondeur de couleur plus élevée permet de représenter un plus grand nombre de couleurs $C = 2^b$, rendant les transitions entre les couleurs plus douces et permettant des images plus réalistes.
+Une profondeur de couleur plus élevée permet de représenter un plus grand nombre de couleurs $`C = 2^b`$, rendant les transitions entre les couleurs plus douces et permettant des images plus réalistes.
 
-Supposons que nous utilisions un espace de couleur RVB. La profondeur de couleur est divisée également entre les composantes rouge, verte et bleue, chacune ayant $b_\text{RGB} = b/3$ bits. Alors, le nombre de valeurs possibles pour chaque composante est $2^{b_\text{RGB}}$. Par conséquent, le nombre total de couleurs différentes pouvant être représentées est :
+Supposons que nous utilisions un espace de couleur RVB. La profondeur de couleur est divisée également entre les composantes rouge, verte et bleue, chacune ayant $`b_\text{RGB} = b/3`$ bits. Alors, le nombre de valeurs possibles pour chaque composante est $`2^{b_\text{RGB}}`$. Par conséquent, le nombre total de couleurs différentes pouvant être représentées est :
 
 ```math
 C = (2^{b_\text{RGB}})^3 = 2^b
@@ -112,7 +112,7 @@ C = (2^{b_\text{RGB}})^3 = 2^b
 
 Les images bitmap peuvent être stockées en utilisant différents espaces de couleur. Les plus courants :
 
-- **RVB** (Rouge, Vert, Bleu) : chaque pixel est représenté par trois valeurs pour les composantes rouge, verte et bleue. Format dominant en jeu vidéo et en infographie. Mathématiquement : un triplet $(R, G, B)$.
+- **RVB** (Rouge, Vert, Bleu) : chaque pixel est représenté par trois valeurs pour les composantes rouge, verte et bleue. Format dominant en jeu vidéo et en infographie. Mathématiquement : un triplet $`(R, G, B)`$.
 - **RVBA** : RVB + un canal **alpha** (transparence). Alpha = 0 totalement transparent, alpha = 1 totalement opaque.
 - **CMJN** (Cyan, Magenta, Jaune, Noir) : utilisé en impression. Soustractif au lieu d'additif.
 - **HSL / HSV** (Teinte, Saturation, Luminosité / Valeur) : reprise des coordonnées RVB sous forme circulaire, pratique pour la manipulation artistique des couleurs (un curseur de "teinte" plutôt que trois sliders R/G/B).
@@ -123,7 +123,7 @@ Les images bitmap peuvent être stockées en utilisant différents espaces de co
 Quand vous voyez une couleur `(0.5, 0.5, 0.5)` stockée dans une texture, à quoi correspond-elle physiquement ? À 50 % de la lumière émise par un pixel blanc ? Ou à 50 % de "l'éclat perçu" par l'œil ? Les deux sont **complètement différents** parce que :
 
 1. L'œil humain est **non-linéaire** : il distingue mieux les nuances dans les sombres que dans les clairs. Une valeur numérique à 50 % de l'éclat perçu par l'œil ne correspond qu'à environ 22 % de l'éclat physique réel émis.
-2. L'espace **sRGB** encode les couleurs selon cette perception non-linéaire : la relation $C_\text{linéaire} \approx C_\text{sRGB}^{2{,}2}$ est une **approximation** commode. La vraie courbe sRGB est définie par morceaux, avec un segment **linéaire** près de zéro (voir ci-dessous).
+2. L'espace **sRGB** encode les couleurs selon cette perception non-linéaire : la relation $`C_\text{linéaire} \approx C_\text{sRGB}^{2{,}2}`$ est une **approximation** commode. La vraie courbe sRGB est définie par morceaux, avec un segment **linéaire** près de zéro (voir ci-dessous).
 
 ```math
 C_\text{linéaire} \approx C_\text{sRGB}^{2.2}
@@ -135,7 +135,7 @@ C_\text{sRGB} \approx C_\text{linéaire}^{1/2.2}
 
 ##### La courbe sRGB exacte (norme IEC 61966-2-1)
 
-L'approximation $\gamma = 2{,}2$ est en fait une simplification d'une courbe **par morceaux** qui ajoute un segment **linéaire** près de zéro pour éviter une dérivée infinie en $C = 0$ (numériquement fâcheuse pour la quantification 8 bits). De **sRGB vers linéaire** :
+L'approximation $`\gamma = 2{,}2`$ est en fait une simplification d'une courbe **par morceaux** qui ajoute un segment **linéaire** près de zéro pour éviter une dérivée infinie en $`C = 0`$ (numériquement fâcheuse pour la quantification 8 bits). De **sRGB vers linéaire** :
 
 ```math
 C_\text{linéaire} = \begin{cases} \dfrac{C_\text{sRGB}}{12{,}92} & \text{si } C_\text{sRGB} \le 0{,}04045 \\[6pt] \left(\dfrac{C_\text{sRGB} + 0{,}055}{1{,}055}\right)^{2{,}4} & \text{sinon} \end{cases}
@@ -147,7 +147,7 @@ et **dans l'autre sens** (linéaire vers sRGB, donc gamma sur écriture finale d
 C_\text{sRGB} = \begin{cases} 12{,}92\,C_\text{lin} & \text{si } C_\text{lin} \le 0{,}0031308 \\[4pt] 1{,}055\,C_\text{lin}^{1/2{,}4} - 0{,}055 & \text{sinon} \end{cases}
 ```
 
-L'exposant effectif global ($\approx 2{,}4$ avec offset) revient à un gamma moyen de $\approx 2{,}2$ — d'où l'approximation usuelle. Le matériel GPU (les samplers `*_SRGB` et les cibles de rendu ou *render target*, voir définition ci-dessous, `RGBA8_SRGB`) implémente la version **exacte** en hardware, donc on ne paie aucun cycle pour la conversion correcte.
+L'exposant effectif global ($`\approx 2{,}4`$ avec offset) revient à un gamma moyen de $`\approx 2{,}2`$ — d'où l'approximation usuelle. Le matériel GPU (les samplers `*_SRGB` et les cibles de rendu ou *render target*, voir définition ci-dessous, `RGBA8_SRGB`) implémente la version **exacte** en hardware, donc on ne paie aucun cycle pour la conversion correcte.
 
 > **Vocabulaire express du pipeline d'image.**
 >
@@ -178,7 +178,7 @@ La règle pratique à retenir pour tout jeu moderne est donc :
 
 > **Le bug classique.** Une texture d'albedo déclarée en `RGBA8_UNORM` au lieu de `RGBA8_SRGB` : le shader croit lire du linéaire, fait ses calculs sur des chiffres déjà gamma-corrigés, et le résultat est trop sombre dans les ombres et trop saturé dans les *highlights*. C'est typiquement ce qu'on voyait sur certains jeux de la fin des années 2000 dont les textures n'étaient pas correctement marquées dans le pipeline.
 >
-> **Qu'est-ce que le HDR (*High Dynamic Range*) ?** Plage dynamique étendue : on stocke des composantes au-delà de `[0, 1]` (un soleil peut faire `(50, 50, 50)`). Cela ouvre la porte au *bloom*, à l'*exposition*, et au **tonemapping** — courbe de compression $f : \mathbb{R}^+ \to [0, 1]$ qui ramène la scène HDR dans la plage affichable par l'écran. Les deux opérateurs vedettes sont **Reinhard** ($f(x) = x/(1+x)$, simple et doux) et **ACES** (*Academy Color Encoding System*, courbe en S inspirée du cinéma, plus filmique — c'est l'opérateur par défaut d'Unreal et de plus en plus de jeux AAA). Indispensable en PBR.
+> **Qu'est-ce que le HDR (*High Dynamic Range*) ?** Plage dynamique étendue : on stocke des composantes au-delà de `[0, 1]` (un soleil peut faire `(50, 50, 50)`). Cela ouvre la porte au *bloom*, à l'*exposition*, et au **tonemapping** — courbe de compression $`f : \mathbb{R}^+ \to [0, 1]`$ qui ramène la scène HDR dans la plage affichable par l'écran. Les deux opérateurs vedettes sont **Reinhard** ($`f(x) = x/(1+x)`$, simple et doux) et **ACES** (*Academy Color Encoding System*, courbe en S inspirée du cinéma, plus filmique — c'est l'opérateur par défaut d'Unreal et de plus en plus de jeux AAA). Indispensable en PBR.
 
 ### Formats de fichier d'image
 

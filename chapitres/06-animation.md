@@ -18,7 +18,7 @@ Une armature est un ensemble de **nœuds** (appelés *joints* ou *os*) reliés e
 T_\text{global} = T_\text{parent} \cdot T_\text{local}
 ```
 
-où $T_\text{parent}$ est la matrice de transformation globale du nœud parent, $T_\text{local}$ est la matrice de transformation locale du nœud actuel, et $T_\text{global}$ est la matrice de transformation globale du nœud actuel.
+où $`T_\text{parent}`$ est la matrice de transformation globale du nœud parent, $`T_\text{local}`$ est la matrice de transformation locale du nœud actuel, et $`T_\text{global}`$ est la matrice de transformation globale du nœud actuel.
 
 L'animation d'une armature consiste à modifier les matrices de transformation locale des nœuds au fil du temps, créant ainsi des mouvements.
 
@@ -26,13 +26,13 @@ L'animation d'une armature consiste à modifier les matrices de transformation l
 
 L'**animation de forme**, également appelée *morphing* ou interpolation de formes, consiste à interpoler entre différentes formes d'un objet 3D pour créer des animations. Cette technique est souvent utilisée pour animer des objets dont la géométrie change de manière complexe, comme les **visages** ou les **vêtements**.
 
-Cette technique repose généralement sur l'**interpolation linéaire** entre les positions des sommets des différentes formes. Pour interpoler entre deux formes $A$ et $B$ à un facteur d'interpolation $t$, où $0 \leq t \leq 1$, on utilise la formule suivante :
+Cette technique repose généralement sur l'**interpolation linéaire** entre les positions des sommets des différentes formes. Pour interpoler entre deux formes $`A`$ et $`B`$ à un facteur d'interpolation $`t`$, où $`0 \leq t \leq 1`$, on utilise la formule suivante :
 
 ```math
 P_\text{interpolated} = (1 - t) \times P_A + t \times P_B
 ```
 
-où $P_\text{interpolated}$ est la position interpolée du sommet, et $P_A$ et $P_B$ sont les positions du sommet dans les formes $A$ et $B$, respectivement.
+où $`P_\text{interpolated}`$ est la position interpolée du sommet, et $`P_A`$ et $`P_B`$ sont les positions du sommet dans les formes $`A`$ et $`B`$, respectivement.
 
 ### Cinématique inverse
 
@@ -44,9 +44,9 @@ La cinématique inverse nécessite la résolution d'un **système d'équations n
 
 #### Méthodes basées sur la Jacobienne
 
-Soit $\boldsymbol{\theta} = (\theta_1, \dots, \theta_n)$ le vecteur des angles articulaires et $\mathbf{e}(\boldsymbol{\theta})$ la position de l'effecteur (fonction non-linéaire). On cherche $\boldsymbol{\theta}^\star$ tel que $\mathbf{e}(\boldsymbol{\theta}^\star)$ atteigne la cible $\mathbf{e}_\text{cible}$. La **Jacobienne** $J = \partial \mathbf{e} / \partial \boldsymbol{\theta}$ relie une petite variation des angles à une petite variation de l'effecteur : $\Delta \mathbf{e} \approx J\,\Delta \boldsymbol{\theta}$.
+Soit $`\boldsymbol{\theta} = (\theta_1, \dots, \theta_n)`$ le vecteur des angles articulaires et $`\mathbf{e}(\boldsymbol{\theta})`$ la position de l'effecteur (fonction non-linéaire). On cherche $`\boldsymbol{\theta}^\star`$ tel que $`\mathbf{e}(\boldsymbol{\theta}^\star)`$ atteigne la cible $`\mathbf{e}_\text{cible}`$. La **Jacobienne** $`J = \partial \mathbf{e} / \partial \boldsymbol{\theta}`$ relie une petite variation des angles à une petite variation de l'effecteur : $`\Delta \mathbf{e} \approx J\,\Delta \boldsymbol{\theta}`$.
 
-> **Notation.** Le symbole $\partial$ (lu "d rond") désigne une **dérivée partielle** : $\partial f / \partial x$ signifie "comment $f$ varie quand on bouge **uniquement** $x$, en gardant les autres variables fixes". C'est la généralisation aux fonctions à plusieurs variables de la dérivée classique $\mathrm{d}f / \mathrm{d}x$. La **Jacobienne** d'une fonction vectorielle $\mathbf{e}(\boldsymbol{\theta})$ est la matrice qui regroupe **toutes** les dérivées partielles : $J_{ij} = \partial e_i / \partial \theta_j$. Pour une chaîne IK à 3 articulations planaires (un degré de liberté chacune) qui produit une position 3D en sortie, $J$ est une matrice $3 \times 3$ ; en général, $J$ est de taille $m \times n$ où $m$ est la dimension de l'espace de l'effecteur et $n$ le nombre total de degrés de liberté.
+> **Notation.** Le symbole $`\partial`$ (lu "d rond") désigne une **dérivée partielle** : $`\partial f / \partial x`$ signifie "comment $`f`$ varie quand on bouge **uniquement** $`x`$, en gardant les autres variables fixes". C'est la généralisation aux fonctions à plusieurs variables de la dérivée classique $`\mathrm{d}f / \mathrm{d}x`$. La **Jacobienne** d'une fonction vectorielle $`\mathbf{e}(\boldsymbol{\theta})`$ est la matrice qui regroupe **toutes** les dérivées partielles : $`J_{ij} = \partial e_i / \partial \theta_j`$. Pour une chaîne IK à 3 articulations planaires (un degré de liberté chacune) qui produit une position 3D en sortie, $`J`$ est une matrice $`3 \times 3`$ ; en général, $`J`$ est de taille $`m \times n`$ où $`m`$ est la dimension de l'espace de l'effecteur et $`n`$ le nombre total de degrés de liberté.
 
 La mise à jour itérative des angles s'écrit, à chaque pas, en fonction de l'erreur courante et d'une forme de l'inverse de la Jacobienne :
 
@@ -54,19 +54,19 @@ La mise à jour itérative des angles s'écrit, à chaque pas, en fonction de l'
 \Delta \boldsymbol{\theta} = J^{+}\,(\mathbf{e}_\text{cible} - \mathbf{e}(\boldsymbol{\theta}))
 ```
 
-où $J^{+}$ est la **pseudo-inverse** de Moore-Penrose. Selon la manière dont on approche $J^{+}$, on obtient trois variantes :
+où $`J^{+}`$ est la **pseudo-inverse** de Moore-Penrose. Selon la manière dont on approche $`J^{+}`$, on obtient trois variantes :
 
-- **Jacobienne transposée** : on remplace $J^{+}$ par $J^{T}$.
+- **Jacobienne transposée** : on remplace $`J^{+}`$ par $`J^{T}`$.
   - *Avantages* : très peu coûteux (pas d'inversion de matrice), implémentation triviale.
-  - *Inconvénients* : convergence lente, le pas de descente $\alpha$ est difficile à régler, comportement médiocre sur les chaînes longues.
+  - *Inconvénients* : convergence lente, le pas de descente $`\alpha`$ est difficile à régler, comportement médiocre sur les chaînes longues.
 
-- **Pseudo-inverse** ($J^{+} = J^{T}(JJ^{T})^{-1}$) : solution au sens des moindres carrés.
-  - *Avantages* : convergence rapide, solution minimisant la norme $\|\Delta\boldsymbol{\theta}\|$.
-  - *Inconvénients* : instable près des **singularités** (coude tendu, par exemple) où $JJ^{T}$ devient singulière ou mal conditionnée.
+- **Pseudo-inverse** ($`J^{+} = J^{T}(JJ^{T})^{-1}`$) : solution au sens des moindres carrés.
+  - *Avantages* : convergence rapide, solution minimisant la norme $`\|\Delta\boldsymbol{\theta}\|`$.
+  - *Inconvénients* : instable près des **singularités** (coude tendu, par exemple) où $`JJ^{T}`$ devient singulière ou mal conditionnée.
 
-- **Damped Least Squares** (DLS — application du principe de régularisation de Levenberg-Marquardt à l'IK) : $\Delta \boldsymbol{\theta} = J^{T}(JJ^{T} + \lambda^2 I)^{-1}\,(\mathbf{e}_\text{cible} - \mathbf{e})$.
-  - *Avantages* : le terme d'amortissement $\lambda$ régularise le système et supprime les instabilités aux singularités ; c'est l'ossature classique des solveurs IK qu'on retrouve aussi bien dans Maya que dans les solveurs IK des moteurs de jeu et des outils d'animation.
-  - *Inconvénients* : introduit une erreur résiduelle au voisinage des singularités (l'effecteur ne peut plus atteindre exactement la cible) ; le réglage de $\lambda$ est souvent empirique.
+- **Damped Least Squares** (DLS — application du principe de régularisation de Levenberg-Marquardt à l'IK) : $`\Delta \boldsymbol{\theta} = J^{T}(JJ^{T} + \lambda^2 I)^{-1}\,(\mathbf{e}_\text{cible} - \mathbf{e})`$.
+  - *Avantages* : le terme d'amortissement $`\lambda`$ régularise le système et supprime les instabilités aux singularités ; c'est l'ossature classique des solveurs IK qu'on retrouve aussi bien dans Maya que dans les solveurs IK des moteurs de jeu et des outils d'animation.
+  - *Inconvénients* : introduit une erreur résiduelle au voisinage des singularités (l'effecteur ne peut plus atteindre exactement la cible) ; le réglage de $`\lambda`$ est souvent empirique.
 
 #### CCD — Cyclic Coordinate Descent
 

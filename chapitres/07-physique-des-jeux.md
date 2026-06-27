@@ -14,7 +14,7 @@ La simulation physique calcule les **forces** appliquées aux corps et en dédui
 \mathbf{F} = m\,\mathbf{a}
 ```
 
-où $\mathbf{F}$ est la résultante des forces (vecteur), $m$ la masse de l'objet (scalaire) et $\mathbf{a}$ son accélération (vecteur). Les forces peuvent inclure la gravité, les forces de contact, le frottement et d'autres forces externes. L'accélération résultante s'obtient en les sommant :
+où $`\mathbf{F}`$ est la résultante des forces (vecteur), $`m`$ la masse de l'objet (scalaire) et $`\mathbf{a}`$ son accélération (vecteur). Les forces peuvent inclure la gravité, les forces de contact, le frottement et d'autres forces externes. L'accélération résultante s'obtient en les sommant :
 
 ```math
 \mathbf{a} = \frac{1}{m}\sum_i \mathbf{F}_i
@@ -30,9 +30,9 @@ Position et vitesse sont ensuite intégrées dans le temps. La méthode la plus 
 \mathbf{p}_{t+1} = \mathbf{p}_t + \mathbf{v}_t\,\Delta t
 ```
 
-où $\Delta t$ est le pas de temps. La position est mise à jour avec la vitesse **avant** la mise à jour (c'est ce qui définit l'Euler explicite). Euler explicite gagne en simplicité ce qu'il perd en stabilité : sur de longues simulations, il introduit une dérive énergétique (les ressorts gagnent de l'énergie, les orbites s'écartent). On lui préfère :
+où $`\Delta t`$ est le pas de temps. La position est mise à jour avec la vitesse **avant** la mise à jour (c'est ce qui définit l'Euler explicite). Euler explicite gagne en simplicité ce qu'il perd en stabilité : sur de longues simulations, il introduit une dérive énergétique (les ressorts gagnent de l'énergie, les orbites s'écartent). On lui préfère :
 
-- **Euler semi-implicite** (*symplectic Euler*) : on met à jour la vitesse **avant** la position — et on utilise la nouvelle vitesse $\mathbf{v}_{t+1}$ pour mettre à jour la position — ce qui en fait un *intégrateur symplectique*.
+- **Euler semi-implicite** (*symplectic Euler*) : on met à jour la vitesse **avant** la position — et on utilise la nouvelle vitesse $`\mathbf{v}_{t+1}`$ pour mettre à jour la position — ce qui en fait un *intégrateur symplectique*.
 
 ```math
 \mathbf{v}_{t+1} = \mathbf{v}_t + \mathbf{a}(\mathbf{p}_t)\,\Delta t, \qquad \mathbf{p}_{t+1} = \mathbf{p}_t + \mathbf{v}_{t+1}\,\Delta t
@@ -59,7 +59,7 @@ où $\Delta t$ est le pas de temps. La position est mise à jour avec la vitesse
   - *Avantages* : exacte à l'ordre 2 sur la position et la vitesse ; très bonne conservation de l'énergie ; utilisée par les moteurs de cloth, de soft-body et de simulation moléculaire.
   - *Inconvénients* : requiert deux évaluations de l'accélération par pas (légèrement plus coûteux que le semi-implicite).
 
-- **Runge-Kutta 4 (RK4)** : méthode à quatre étages, très précise (erreur en $O(\Delta t^5)$). Pour un système $\dot{\mathbf{y}} = f(\mathbf{y})$ :
+- **Runge-Kutta 4 (RK4)** : méthode à quatre étages, très précise (erreur en $`O(\Delta t^5)`$). Pour un système $`\dot{\mathbf{y}} = f(\mathbf{y})`$ :
 
 ```math
 \begin{aligned}
@@ -71,7 +71,7 @@ où $\Delta t$ est le pas de temps. La position est mise à jour avec la vitesse
 \end{aligned}
 ```
 
-  - *Avantages* : très haute précision par pas ($O(\Delta t^5)$) ; idéal pour les simulations aérospatiales, de trajectoire balistique et les démos physiques éducatives.
+  - *Avantages* : très haute précision par pas ($`O(\Delta t^5)`$) ; idéal pour les simulations aérospatiales, de trajectoire balistique et les démos physiques éducatives.
   - *Inconvénients* : quatre évaluations de la dérivée par pas (4× plus coûteux qu'Euler) ; **non symplectique** — l'énergie dérive lentement sur les longues simulations malgré sa précision locale ; rarement utilisé dans les jeux temps réel.
 
 > **Pourquoi les moteurs de jeu privilégient le semi-implicite et le Verlet plutôt que RK4.** Dans un jeu, on simule presque toujours pendant des minutes ou des heures sans interruption, donc la stabilité énergétique sur la durée compte plus que la précision instantanée. Une dérive lente d'un canon en orbite finit par se voir au bout de quelques dizaines de secondes ; en revanche, une erreur de quelques centimètres sur la trajectoire d'un obus qui parcourt cent mètres reste totalement invisible. C'est pour cette raison que les moteurs de physique grand public (Box2D, Bullet, PhysX) choisissent par défaut un intégrateur symplectique, et que les moteurs de tissu reposent sur du Verlet : on préfère un comportement qui ne s'emballe jamais à un comportement très précis sur un pas mais instable sur la durée.
@@ -109,7 +109,7 @@ La **détection de collision** est le processus par lequel on détermine si deux
 - les tests de **boîtes englobantes** (**AABB** — *Axis-Aligned Bounding Box* : un parallélépipède rectangle dont les faces sont alignées sur les axes du monde, défini par seulement deux points min/max — c'est le test le plus rapide possible, "deux objets se chevauchent ssi leurs intervalles se chevauchent sur les trois axes") ;
 - les tests de **sphères englobantes** (un seul point + un rayon, encore plus rapide qu'AABB mais plus lâche) ;
 - les tests de **séparation d'axes** (**SAT** — *Separating Axis Theorem* : deux convexes ne se touchent pas s'il existe **un seul axe** sur lequel leurs projections ne se chevauchent pas — il suffit de tester un nombre fini d'axes "candidats" tirés des normales aux faces et arêtes) ;
-- l'algorithme **GJK** (*Gilbert-Johnson-Keerthi*, 1988 — résout la collision entre deux formes convexes en cherchant le point le plus proche de l'origine dans la **différence de Minkowski** $A \ominus B = \{a - b \mid a \in A,\, b \in B\}$ ; collision $\Leftrightarrow$ origine $\in A \ominus B$. Standard dans Bullet, Box2D, PhysX).
+- l'algorithme **GJK** (*Gilbert-Johnson-Keerthi*, 1988 — résout la collision entre deux formes convexes en cherchant le point le plus proche de l'origine dans la **différence de Minkowski** $`A \ominus B = \{a - b \mid a \in A,\, b \in B\}`$ ; collision $`\Leftrightarrow`$ origine $`\in A \ominus B`$. Standard dans Bullet, Box2D, PhysX).
 
 Chaque technique a ses avantages et ses inconvénients en termes de **précision** et de **performances**.
 
@@ -133,7 +133,7 @@ La résolution de collision implique généralement l'application d'une **force 
 J = \frac{-(1 + e)\,(\mathbf{v}_{A_t} - \mathbf{v}_{B_t}) \cdot \mathbf{n}}{\dfrac{1}{m_A} + \dfrac{1}{m_B}}
 ```
 
-où $J$ est l'impulsion (scalaire), $e$ est le coefficient de **restitution** (élasticité, $0$ = parfaitement inélastique, $1$ = parfaitement élastique), $\mathbf{v}_{A_t}$ et $\mathbf{v}_{B_t}$ sont les vitesses vectorielles des objets $A$ et $B$ avant la collision, $m_A$ et $m_B$ sont les masses des objets, et $\mathbf{n}$ est le vecteur unitaire normal à la surface de contact.
+où $`J`$ est l'impulsion (scalaire), $`e`$ est le coefficient de **restitution** (élasticité, $`0`$ = parfaitement inélastique, $`1`$ = parfaitement élastique), $`\mathbf{v}_{A_t}`$ et $`\mathbf{v}_{B_t}`$ sont les vitesses vectorielles des objets $`A`$ et $`B`$ avant la collision, $`m_A`$ et $`m_B`$ sont les masses des objets, et $`\mathbf{n}`$ est le vecteur unitaire normal à la surface de contact.
 
 Ensuite, les vitesses des objets après la collision sont mises à jour en fonction de l'impulsion appliquée :
 
@@ -145,7 +145,7 @@ Ensuite, les vitesses des objets après la collision sont mises à jour en fonct
 \mathbf{v}_{B_{t+1}} = \mathbf{v}_{B_t} - \frac{J}{m_B}\,\mathbf{n}
 ```
 
-La position des objets peut également être corrigée pour éviter les chevauchements en déplaçant les objets en fonction de la profondeur de pénétration $P$ et d'un facteur de correction :
+La position des objets peut également être corrigée pour éviter les chevauchements en déplaçant les objets en fonction de la profondeur de pénétration $`P`$ et d'un facteur de correction :
 
 ```math
 \mathbf{p}_{A_{t+1}} = \mathbf{p}_{A_t} - \frac{m_B}{m_A + m_B}\,P\,\mathbf{n}
@@ -155,7 +155,7 @@ La position des objets peut également être corrigée pour éviter les chevauch
 \mathbf{p}_{B_{t+1}} = \mathbf{p}_{B_t} + \frac{m_A}{m_A + m_B}\,P\,\mathbf{n}
 ```
 
-où $P$ est la profondeur de pénétration et $\mathbf{n}$ est le vecteur unitaire normal à la surface de contact. Le facteur $m_B/(m_A + m_B)$ (resp. $m_A/(m_A + m_B)$) répartit la correction en proportion inverse des masses : un objet plus lourd se déplace moins.
+où $`P`$ est la profondeur de pénétration et $`\mathbf{n}`$ est le vecteur unitaire normal à la surface de contact. Le facteur $`m_B/(m_A + m_B)`$ (resp. $`m_A/(m_A + m_B)`$) répartit la correction en proportion inverse des masses : un objet plus lourd se déplace moins.
 
 ```mermaid
 graph LR

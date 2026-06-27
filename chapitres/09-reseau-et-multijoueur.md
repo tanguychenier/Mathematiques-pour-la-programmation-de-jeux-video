@@ -65,19 +65,19 @@ S(t) = (1 - \alpha)\,S_0 + \alpha\,S_1
 \alpha = \frac{t - t_0}{t_1 - t_0}
 ```
 
-où $S_0, S_1$ sont les deux snapshots qui encadrent le temps $t$. La règle pratique est de retarder le rendu d'environ **deux fois la période du tick rate** : sur un serveur 64 Hz, on affiche les autres joueurs avec un peu plus de 30 ms de retard. C'est l'approche standard des FPS compétitifs (*Counter-Strike*, *Valorant*, *Overwatch* l'appliquent tous, à quelques millisecondes près).
+où $`S_0, S_1`$ sont les deux snapshots qui encadrent le temps $`t`$. La règle pratique est de retarder le rendu d'environ **deux fois la période du tick rate** : sur un serveur 64 Hz, on affiche les autres joueurs avec un peu plus de 30 ms de retard. C'est l'approche standard des FPS compétitifs (*Counter-Strike*, *Valorant*, *Overwatch* l'appliquent tous, à quelques millisecondes près).
 
-> **Pourquoi exactement 2× la période ?** Soit $T = 1/\text{tickRate}$ la période entre deux snapshots et $J$ la *jitter* réseau (variation du délai d'arrivée). Pour qu'à tout instant on dispose d'au moins **deux** snapshots autour du temps de rendu (l'un derrière, l'un devant) il faut un *buffer* d'au moins $T$ ; pour absorber la *jitter* sans interruption il faut **un autre** $T$ de marge. Total : $2T$. Avec moins, un paquet retardé fait dégénérer en **extrapolation** (deviner le futur), ce qui produit le tristement célèbre *rubber-banding*. Avec plus, on accumule un *input lag* visible. Pour les jeux compétitifs très tendus (*VALORANT*, *Counter-Strike 2*), on baisse à $\sim 1{,}5\,T$ et on assume une perte occasionnelle au profit de la réactivité.
+> **Pourquoi exactement 2× la période ?** Soit $`T = 1/\text{tickRate}`$ la période entre deux snapshots et $`J`$ la *jitter* réseau (variation du délai d'arrivée). Pour qu'à tout instant on dispose d'au moins **deux** snapshots autour du temps de rendu (l'un derrière, l'un devant) il faut un *buffer* d'au moins $`T`$ ; pour absorber la *jitter* sans interruption il faut **un autre** $`T`$ de marge. Total : $`2T`$. Avec moins, un paquet retardé fait dégénérer en **extrapolation** (deviner le futur), ce qui produit le tristement célèbre *rubber-banding*. Avec plus, on accumule un *input lag* visible. Pour les jeux compétitifs très tendus (*VALORANT*, *Counter-Strike 2*), on baisse à $`\sim 1{,}5\,T`$ et on assume une perte occasionnelle au profit de la réactivité.
 
 ##### 2. Client-side prediction (côté client, pour soi-même)
 
 On ne peut pas attendre l'aller-retour serveur pour bouger son propre personnage : à 100 ms RTT, ça donnerait l'impression d'un input lag insupportable. La technique :
 
 1. Le client **simule immédiatement** l'effet de son input.
-2. Il **mémorise l'input avec son numéro de séquence** $n$.
-3. Quand le serveur renvoie son state autoritaire avec le numéro $n$, le client **compare** :
+2. Il **mémorise l'input avec son numéro de séquence** $`n`$.
+3. Quand le serveur renvoie son state autoritaire avec le numéro $`n`$, le client **compare** :
  - Si l'état serveur correspond, RAS.
- - Sinon (ping-pong, collision contestée), le client **corrige sa position** et **rejoue tous les inputs postérieurs** $n+1, n+2, \dots$ — c'est la **reconciliation**.
+ - Sinon (ping-pong, collision contestée), le client **corrige sa position** et **rejoue tous les inputs postérieurs** $`n+1, n+2, \dots`$ — c'est la **reconciliation**.
 
 ```python
 # Pseudocode côté client
@@ -98,7 +98,7 @@ C'est la technique fondatrice de *QuakeWorld* (1996, John Carmack), et elle rest
 
 ##### 3. Lag compensation (côté serveur, pour les hits)
 
-Quand un joueur tire, le serveur reçoit l'input avec un délai $\Delta = \text{RTT}/2 + t_\text{interp}$. Si le serveur valide le tir contre les positions actuelles, le joueur a déjà raté la cible (la cible a bougé pendant $\Delta$). Solution : le serveur **rembobine** le monde de $\Delta$ et vérifie le hit dans le passé.
+Quand un joueur tire, le serveur reçoit l'input avec un délai $`\Delta = \text{RTT}/2 + t_\text{interp}`$. Si le serveur valide le tir contre les positions actuelles, le joueur a déjà raté la cible (la cible a bougé pendant $`\Delta`$). Solution : le serveur **rembobine** le monde de $`\Delta`$ et vérifie le hit dans le passé.
 
 ```math
 \Delta_\text{rewind} = \frac{\text{RTT}_\text{client}}{2} + t_\text{interpolation}
