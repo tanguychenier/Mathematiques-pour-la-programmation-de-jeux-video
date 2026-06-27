@@ -1,8 +1,8 @@
-# [Tansoftware](https://www.tansoftware.com) — Mathématiques pour la programmation de jeux vidéo
+# [Tansoftware](https://www.tansoftware.com) - Mathématiques pour la programmation de jeux vidéo
 
 [![fr](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/France.png)](https://fr.wikipedia.org/wiki/Fran%C3%A7ais) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Made with Markdown](https://img.shields.io/badge/Made%20with-Markdown-1f425f.svg)](https://www.markdownguide.org/) [![Topic](https://img.shields.io/badge/Topic-Game%20Math-brightgreen.svg)](https://en.wikipedia.org/wiki/Video_game_graphics) [^1]
 
-> Un cours complet, en français, qui rassemble les fondations mathématiques nécessaires pour comprendre, concevoir et programmer un jeu vidéo moderne — du vecteur 2D jusqu'au pipeline de rendu d'un GPU.
+> Un cours complet, en français, qui rassemble les fondations mathématiques nécessaires pour comprendre, concevoir et programmer un jeu vidéo moderne, du vecteur 2D jusqu'au pipeline de rendu d'un GPU.
 
 ---
 
@@ -66,24 +66,24 @@ Voici quelques ressources reconnues pour approfondir les sujets abordés dans ce
 
 ### Livres
 
-- *Mathematics for 3D Game Programming and Computer Graphics* — Eric Lengyel
-- *Real-Time Rendering* — Tomas Akenine-Möller, Eric Haines, Naty Hoffman et al.
-- *Game Engine Architecture* — Jason Gregory
-- *Physically Based Rendering: From Theory to Implementation* — Matt Pharr, Wenzel Jakob, Greg Humphreys ([disponible en ligne](https://www.pbr-book.org/))
-- *Game Programming Patterns* — Robert Nystrom ([disponible en ligne](https://gameprogrammingpatterns.com/))
+- *Mathematics for 3D Game Programming and Computer Graphics*, Eric Lengyel
+- *Real-Time Rendering*, Tomas Akenine-Möller, Eric Haines, Naty Hoffman et al.
+- *Game Engine Architecture*, Jason Gregory
+- *Physically Based Rendering: From Theory to Implementation*, Matt Pharr, Wenzel Jakob, Greg Humphreys ([disponible en ligne](https://www.pbr-book.org/))
+- *Game Programming Patterns*, Robert Nystrom ([disponible en ligne](https://gameprogrammingpatterns.com/))
 
 ### Sites et tutoriels
 
-- [Khan Academy — Mathématiques](https://fr.khanacademy.org/math) — bases solides en algèbre, trigonométrie, calcul.
-- [LearnOpenGL](https://learnopengl.com/) — un excellent tutoriel pour comprendre le pipeline graphique en pratique.
-- [Scratchapixel](https://www.scratchapixel.com/) — articles très approfondis sur le rendu et la 3D.
-- [The Book of Shaders](https://thebookofshaders.com/) — introduction interactive aux shaders.
-- [Catlike Coding](https://catlikecoding.com/unity/tutorials/) — tutoriels avancés Unity (rendu, mathématiques, shaders).
+- [Khan Academy, Mathématiques](https://fr.khanacademy.org/math), bases solides en algèbre, trigonométrie, calcul.
+- [LearnOpenGL](https://learnopengl.com/), un excellent tutoriel pour comprendre le pipeline graphique en pratique.
+- [Scratchapixel](https://www.scratchapixel.com/), articles très approfondis sur le rendu et la 3D.
+- [The Book of Shaders](https://thebookofshaders.com/), introduction interactive aux shaders.
+- [Catlike Coding](https://catlikecoding.com/unity/tutorials/), tutoriels avancés Unity (rendu, mathématiques, shaders).
 
 ### Moteurs et frameworks à explorer
 
-- [Unity](https://unity.com/), [Unreal Engine](https://www.unrealengine.com/), [Godot](https://godotengine.org/) — moteurs grand public.
-- [Bevy](https://bevyengine.org/) (Rust), [MonoGame](https://www.monogame.net/) (C\#), [raylib](https://www.raylib.com/) (C) — frameworks plus légers, idéaux pour apprendre.
+- [Unity](https://unity.com/), [Unreal Engine](https://www.unrealengine.com/), [Godot](https://godotengine.org/), moteurs grand public.
+- [Bevy](https://bevyengine.org/) (Rust), [MonoGame](https://www.monogame.net/) (C\#), [raylib](https://www.raylib.com/) (C), frameworks plus légers, idéaux pour apprendre.
 
 [ Retour en haut de page](#table-des-matières)
 
@@ -98,7 +98,7 @@ Ce dépôt est en évolution permanente. Si vous repérez une coquille, une impr
 3. Faites vos modifications
 4. Ouvrez une **Pull Request** avec une description claire
 
-Toute contribution — correction, illustration, exemple de code, traduction — est la bienvenue.
+Toute contribution (correction, illustration, exemple de code, traduction) est la bienvenue.
 
 ## Licence
 
@@ -106,4 +106,4 @@ Ce projet est distribué sous licence **MIT**. Voir le fichier [LICENSE](LICENSE
 
 ---
 
-[^1]: Des modifications peuvent survenir. — [Tanguy Chénier](https://www.linkedin.com/in/tanguy-chenier/).
+[^1]: Des modifications peuvent survenir. [Tanguy Chénier](https://www.linkedin.com/in/tanguy-chenier/).
