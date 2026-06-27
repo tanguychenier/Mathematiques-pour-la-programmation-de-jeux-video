@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="vb" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#2563eb"/></marker>
+    <marker id="vg" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#16a34a"/></marker>
+    <marker id="vo" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#ea580c"/></marker>
+  </defs>
+  <rect width="720" height="380" rx="14" fill="#fbfdff"/>
+  <rect x="1" y="1" width="718" height="378" rx="14" fill="none" stroke="#e2e8f0"/>
+  <text x="360" y="32" text-anchor="middle" font-size="19" font-weight="700" fill="#1b2a4a">Additionner deux vecteurs : les mettre bout à bout</text>
+  <text x="360" y="53" text-anchor="middle" font-size="12.5" fill="#64748b">On accroche le départ de v à la pointe de u. La flèche qui va du tout début à la toute fin, c'est u + v.</text>
+
+  <polygon points="120,270 290,222 368,94 198,142" fill="#f1f5f9" stroke="#e2e8f0"/>
+  <line x1="290" y1="222" x2="368" y2="94" stroke="#16a34a" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#vg)"/>
+  <line x1="198" y1="142" x2="368" y2="94" stroke="#2563eb" stroke-width="2" stroke-dasharray="5 4" opacity="0.5"/>
+
+  <line x1="120" y1="270" x2="290" y2="222" stroke="#2563eb" stroke-width="3.5" marker-end="url(#vb)"/>
+  <text x="205" y="264" text-anchor="middle" font-size="15" fill="#2563eb" font-weight="700">u</text>
+  <line x1="120" y1="270" x2="198" y2="142" stroke="#16a34a" stroke-width="3.5" marker-end="url(#vg)"/>
+  <text x="145" y="206" text-anchor="middle" font-size="15" fill="#16a34a" font-weight="700">v</text>
+  <text x="339" y="158" font-size="12.5" fill="#15803d">v (recopié)</text>
+
+  <g opacity="0"><animate attributeName="opacity" values="0;0;0;1;1;0" keyTimes="0;0.12;0.45;0.62;0.92;1" dur="6.0s" repeatCount="indefinite"/>
+    <line x1="120" y1="270" x2="368" y2="94" stroke="#ea580c" stroke-width="4" marker-end="url(#vo)"/>
+    <text x="238" y="172" text-anchor="middle" font-size="16" fill="#ea580c" font-weight="700">u + v</text>
+  </g>
+  <circle cx="120" cy="270" r="4" fill="#475569"/>
+  <circle r="7" fill="#f59e0b" stroke="#b45309" stroke-width="1.5"><animate attributeName="cx" values="120;120;290;290;368;120" keyTimes="0;0.12;0.45;0.62;0.92;1" dur="6.0s" repeatCount="indefinite" calcMode="spline" keySplines="0 0 1 1;0.4 0 0.2 1;0 0 1 1;0.4 0 0.2 1;0 0 1 1"/><animate attributeName="cy" values="270;270;222;222;94;270" keyTimes="0;0.12;0.45;0.62;0.92;1" dur="6.0s" repeatCount="indefinite" calcMode="spline" keySplines="0 0 1 1;0.4 0 0.2 1;0 0 1 1;0.4 0 0.2 1;0 0 1 1"/></circle>
+
+  <text x="360" y="358" text-anchor="middle" font-size="12.5" fill="#1b2a4a">Comme deux déplacements à la suite : faire u, puis v, mène exactement où pointe la flèche somme. L'ordre n'y change rien.</text>
+</svg>

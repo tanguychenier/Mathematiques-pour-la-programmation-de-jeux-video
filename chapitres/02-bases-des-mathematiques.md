@@ -540,6 +540,8 @@ Pour additionner ou soustraire deux vecteurs, on traite chaque axe séparément 
 
 On peut s'imaginer additionner deux vecteurs en mettant les flèches bout à bout : la flèche résultante va du tout début au tout dernier bout. Soustraire revient à parcourir la seconde flèche à l'envers.
 
+![Addition de deux vecteurs mis bout à bout : on accroche le départ de v à la pointe de u, et la flèche qui va du début à la fin est la somme u plus v](../assets/addition-vecteurs.svg)
+
 #### Multiplication par un scalaire
 
 > **Que veut dire « scalaire » ?** Un scalaire est un simple nombre, une quantité sans direction (par opposition au vecteur, qui a une direction). Par exemple 2, ou -0,5. Le mot vient de « échelle » : un scalaire sert souvent à mettre un vecteur à l'échelle, c'est-à-dire à l'agrandir ou à le rétrécir.
@@ -566,6 +568,8 @@ Ce nombre mesure à quel point les deux flèches pointent dans la même directio
 
 Ces deux usages, mesurer l'angle entre deux directions et tester si elles sont perpendiculaires, font du produit scalaire un outil que l'on retrouve partout : savoir si un ennemi est devant ou derrière le joueur, calculer la quantité de lumière reçue par une surface, et bien plus.
 
+![Le produit scalaire selon l'angle : positif quand les deux flèches vont dans le même sens, nul quand elles sont perpendiculaires, négatif quand elles sont opposées](../assets/produit-scalaire.svg)
+
 #### Produit vectoriel
 
 Le **produit vectoriel** prend lui aussi deux vecteurs, mais il rend un troisième vecteur, perpendiculaire aux deux premiers à la fois. Autrement dit, à partir de deux flèches posées sur une table, il fabrique une flèche qui pointe droit vers le haut (ou vers le bas).
@@ -577,6 +581,8 @@ Le **produit vectoriel** prend lui aussi deux vecteurs, mais il rend un troisiè
 > **Que veut dire « produit vectoriel » ?** C'est une autre multiplication de deux vecteurs, mais dont le résultat est un vecteur (d'où le nom), perpendiculaire au plan formé par les deux vecteurs de départ. Le symbole de la croix $`\times`$ le distingue du produit scalaire, noté par un point.
 
 > **Le symbole $`\times`$.** Entre deux vecteurs, il note le produit vectoriel (et non une simple multiplication de nombres). C'est pourquoi on le lit « u croix v ».
+
+![Le produit vectoriel u croix v : une flèche perpendiculaire au plan de u et v, de longueur égale à l'aire du parallélogramme, orientée par la règle de la main droite](../assets/produit-vectoriel.svg)
 
 À quoi sert cette flèche perpendiculaire ? Surtout à calculer la **normale** d'un triangle, cette petite flèche qui indique de quel côté la surface fait face, indispensable pour l'éclairage. Il sert aussi à déterminer un **sens de rotation** (dans quel sens on tourne) et à bâtir un repère local soigné à partir de deux directions.
 
@@ -854,6 +860,8 @@ Pour calculer une case du résultat, on prend une ligne de $`A`$ et une colonne 
 ```math
 AB = [\,c_{ij}\,] \quad \text{où} \quad c_{ij} = \sum_{k=1}^{n} a_{ik} \cdot b_{kj}
 ```
+
+![Produit matriciel animé : chaque case du résultat est une ligne de A multipliée terme à terme par une colonne de B, puis additionnée](../assets/produit-matriciel.svg)
 
 Cette formule dit exactement cela : la case $`c_{ij}`$ (ligne $`i`$, colonne $`j`$ du résultat) s'obtient en parcourant la ligne $`i`$ de $`A`$ et la colonne $`j`$ de $`B`$ en même temps (l'indice $`k`$ avance dans les deux), en multipliant les paires et en faisant la somme.
 
