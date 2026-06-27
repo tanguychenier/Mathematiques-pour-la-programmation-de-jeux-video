@@ -200,6 +200,8 @@ Il existe plusieurs façons de détecter une collision, de la plus rapide et gro
 
 > **Que veut dire « boîte englobante » (AABB) ?** AABB veut dire « boîte alignée sur les axes » (Axis-Aligned Bounding Box). C'est une boîte rectangulaire bien droite, jamais penchée, qui entoure l'objet, comme le carton dans lequel on rangerait un jouet. On la décrit avec seulement deux coins (un en bas à gauche, un en haut à droite), ce qui la rend ultra-rapide à comparer. La règle est simple : deux boîtes se touchent seulement si elles se chevauchent en même temps de gauche à droite, de bas en haut et d'avant en arrière. Avantage : c'est le test le plus rapide possible. Défaut : la boîte est plus grosse que l'objet, donc on peut croire à un choc qui n'a pas vraiment eu lieu.
 
+![Détection de collision AABB : deux boîtes alignées sur les axes se chevauchent (collision) si et seulement si leurs intervalles se croisent à la fois en x et en y](../assets/collision-aabb.svg)
+
 - Le test des **sphères englobantes**. Même idée, mais avec une bulle ronde autour de l'objet au lieu d'une boîte.
 
 > **Que veut dire « sphère englobante » ?** C'est une bulle (une sphère) qui entoure l'objet, décrite par son centre et son rayon (la distance du centre au bord). Deux bulles se touchent si la distance entre leurs centres est plus petite que la somme de leurs rayons : encore plus rapide à tester qu'une boîte, mais encore plus grossier pour un objet qui n'est pas rond.
