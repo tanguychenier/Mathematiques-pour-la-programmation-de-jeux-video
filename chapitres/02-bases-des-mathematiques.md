@@ -688,6 +688,8 @@ La forme la plus courante, dite **cubique**, relie un point de départ $`P_0`$ �
 B(t) = (1-t)^3 P_0 + 3(1-t)^2 t P_1 + 3(1-t)t^2 P_2 + t^3 P_3, \quad t \in [0, 1]
 ```
 
+![Courbe de Bézier cubique : la courbe part de P0 et finit en P3, attirée vers les points de contrôle P1 et P2 sans passer par eux ; un point la parcourt au fil du paramètre t](../assets/courbe-bezier.svg)
+
 > **Que veut dire « cubique » ?** Cela veut dire que la formule fait intervenir le curseur $`t`$ jusqu'à la puissance 3 (au cube). Plus le degré est élevé, plus la courbe peut faire d'ondulations.
 
 > **La notation $`P_0, P_1, P_2, P_3`$.** Ce sont les points repères, numérotés par leur indice. $`P_0`$ est le point de départ, $`P_3`$ le point d'arrivée, $`P_1`$ et $`P_2`$ les deux aimants intermédiaires.

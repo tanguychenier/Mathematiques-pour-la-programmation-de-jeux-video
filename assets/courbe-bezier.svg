@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+  <rect width="720" height="380" rx="14" fill="#fbfdff"/>
+  <rect x="1" y="1" width="718" height="378" rx="14" fill="none" stroke="#e2e8f0"/>
+  <text x="360" y="32" text-anchor="middle" font-size="19" font-weight="700" fill="#1b2a4a">La courbe de Bézier : des points qui tirent une courbe lisse</text>
+  <text x="360" y="53" text-anchor="middle" font-size="12.5" fill="#64748b">La courbe part de P0 et finit en P3. P1 et P2 l'attirent vers eux, mais elle ne passe pas par ces deux-là.</text>
+
+  <polyline points="120,300 205,95 495,95 600,300" fill="none" stroke="#cbd5e1" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <polyline points="120.0,300.0 126.8,285.0 134.2,270.8 142.4,257.3 151.3,244.7 160.7,232.7 170.8,221.6 181.4,211.2 192.5,201.6 204.1,192.8 216.1,184.7 228.5,177.4 241.3,170.8 254.4,165.1 267.9,160.1 281.5,155.9 295.4,152.4 309.5,149.7 323.7,147.8 338.1,146.6 352.5,146.2 367.0,146.6 381.4,147.8 395.8,149.7 410.2,152.4 424.4,155.9 438.5,160.1 452.4,165.1 466.1,170.8 479.5,177.4 492.7,184.7 505.5,192.8 517.9,201.6 530.0,211.2 541.6,221.6 552.7,232.7 563.3,244.7 573.4,257.3 582.9,270.8 591.8,285.0 600.0,300.0" fill="none" stroke="#ea580c" stroke-width="3.5"/>
+
+  <circle cx="120" cy="300" r="6" fill="#16a34a"/><text x="114" y="322" text-anchor="end" font-size="13" fill="#16a34a" font-weight="700">P0</text>
+  <circle cx="600" cy="300" r="6" fill="#16a34a"/><text x="610" y="322" font-size="13" fill="#16a34a" font-weight="700">P3</text>
+  <circle cx="205" cy="95" r="6" fill="#2563eb"/><text x="205" y="83" text-anchor="middle" font-size="13" fill="#2563eb" font-weight="700">P1</text>
+  <circle cx="495" cy="95" r="6" fill="#2563eb"/><text x="495" y="83" text-anchor="middle" font-size="13" fill="#2563eb" font-weight="700">P2</text>
+
+  <circle r="8" fill="#f59e0b" stroke="#b45309" stroke-width="1.5">
+    <animate attributeName="cx" values="120.0;151.3;192.5;241.3;295.4;352.5;410.2;466.1;517.9;563.3;600.0;120.0" keyTimes="0.000;0.091;0.182;0.273;0.364;0.455;0.545;0.636;0.727;0.818;0.909;1.000" dur="5.5s" repeatCount="indefinite"/>
+    <animate attributeName="cy" values="300.0;244.7;201.6;170.8;152.4;146.2;152.4;170.8;201.6;244.7;300.0;300.0" keyTimes="0.000;0.091;0.182;0.273;0.364;0.455;0.545;0.636;0.727;0.818;0.909;1.000" dur="5.5s" repeatCount="indefinite"/>
+  </circle>
+
+  <text x="360" y="360" text-anchor="middle" font-size="12.5" fill="#1b2a4a">On déplace P1 et P2 pour sculpter la forme : trajectoires de caméra, animations, tracé de polices, tout passe par là.</text>
+</svg>
