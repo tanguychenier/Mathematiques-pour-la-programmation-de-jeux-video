@@ -124,6 +124,8 @@ Le **modèle de Lambert** est plus ancien et plus simple que celui de Phong : il
 I_{\text{Lambert}} = k_a I_a + k_d I_d \max(0,\ \mathbf{N} \cdot \mathbf{L})
 ```
 
+![Éclairage diffus (loi de Lambert) : la luminosité d'une surface vaut N · L, maximale quand la lumière arrive de face, presque nulle quand elle est rasante](../assets/eclairage-diffus.svg)
+
 Il est donc moins réaliste (pas d'éclat sur le métal ou l'eau), mais **plus rapide** à calculer, puisqu'il économise tout le travail du reflet. C'est un choix raisonnable pour les objets mats, ou pour les machines à faible puissance de calcul (un vieux téléphone, par exemple), où chaque économie compte.
 
 > **Que veut dire « la puissance de calcul » ?** C'est la vitesse à laquelle une machine est capable d'enchaîner des calculs : une grosse machine en fait énormément par seconde, une petite beaucoup moins. Un jeu doit recalculer toute l'image des dizaines de fois par seconde ; sur une machine lente, il faut donc choisir les formules les plus économiques, sous peine de saccades.
